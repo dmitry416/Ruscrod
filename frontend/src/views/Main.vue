@@ -12,7 +12,7 @@ let socket: WebSocket | null = null;
 let token: string | null = null;
 const userData: object = ref({
   default_avatar_id: '0/0-0',
-  login: 'unauthorized',
+  login: '',
 });
 
 const isConnected = ref(false);
