@@ -5,17 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0a173891-9bed-4bed-80d6-5b08c368e403" name="Changes" comment="Auth">
-      <change afterPath="$PROJECT_DIR$/frontend/src/config.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/views/Main.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/App.vue" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/router/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/router/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/views/HomeView.vue" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/views/Auth.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/vite.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/vite.config.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/redis/redisdata/appendonlydir/appendonly.aof.3.incr.aof" beforeDir="false" afterPath="$PROJECT_DIR$/redis/redisdata/appendonlydir/appendonly.aof.3.incr.aof" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/redis/redisdata/dump.rdb" beforeDir="false" afterPath="$PROJECT_DIR$/redis/redisdata/dump.rdb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -114,7 +104,7 @@
       <workItem from="1734012560612" duration="11506000" />
       <workItem from="1734091431905" duration="7862000" />
       <workItem from="1734125307574" duration="3547000" />
-      <workItem from="1734229864551" duration="8477000" />
+      <workItem from="1734229864551" duration="8536000" />
     </task>
     <task id="LOCAL-00001" summary="Base voice chat">
       <option name="closed" value="true" />
@@ -124,7 +114,15 @@
       <option name="project" value="LOCAL" />
       <updated>1734111908895</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Auth">
+      <option name="closed" value="true" />
+      <created>1734273517226</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1734273517226</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
