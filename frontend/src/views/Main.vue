@@ -16,6 +16,7 @@ const userData: object = ref({
 });
 
 const isConnected = ref(false);
+const textMessage = ref("");
 
 
 async function initAudio(): Promise<void> {
@@ -39,15 +40,19 @@ async function initAudio(): Promise<void> {
   socket.binaryType = 'arraybuffer';
 
   socket.onmessage = (event: MessageEvent) => {
-    const arrayBuffer = event.data as ArrayBuffer;
-    audioContext?.decodeAudioData(arrayBuffer, (buffer: AudioBuffer) => {
-      const source = audioContext?.createBufferSource();
-      if (source) {
-        source.buffer = buffer;
-        source.connect(audioContext?.destination as AudioNode);
-        source.start();
-      }
-    });
+    if (typeof event.data === 'string') {
+      handleTextMessage(event.data);
+    } else if (event.data instanceof ArrayBuffer) {
+      const arrayBuffer = event.data as ArrayBuffer;
+      audioContext?.decodeAudioData(arrayBuffer, (buffer: AudioBuffer) => {
+        const source = audioContext?.createBufferSource();
+        if (source) {
+          source.buffer = buffer;
+          source.connect(audioContext?.destination as AudioNode);
+          source.start();
+        }
+      });
+    }
   };
 }
 
@@ -70,6 +75,19 @@ async function disconnect(): Promise<void> {
   mediaStream = null;
 
   console.log('Запись закончилась');
+}
+
+function handleTextMessage(message: string): void {
+  console.log('Получено сообщение:', message);
+}
+
+async function sendTextMessage(): Promise<void> {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(textMessage.value);
+    console.log('Текстовое сообщение отправлено:', textMessage.value);
+  } else {
+    console.error('WebSocket не подключен или не готов для отправки сообщений.');
+  }
 }
 
 async function getUserInfo(): Promise<object | null> {
@@ -107,6 +125,10 @@ onMounted(async () => {
     <h1>Подключение по IP</h1>
     <button v-if="!isConnected" @click="connect">Подключиться</button>
     <button v-else @click="disconnect" style="background-color: #df3915">Отключиться</button>
+  </div>
+  <div v-if="isConnected" class="message-form">
+    <textarea placeholder="Введите ваше сообщение" v-model="textMessage"></textarea>
+    <button type="button" @click="sendTextMessage">Отправить</button>
   </div>
 </template>
 
@@ -174,5 +196,37 @@ button:hover {
   font-size: 18px;
   font-weight: bold;
   color: #333;
+}
+
+.message-form {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 300px;
+}
+
+.message-form textarea {
+  width: 100%;
+  height: 100px;
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: none;
+}
+
+.message-form button {
+  width: 100%;
+  padding: 10px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.message-form button:hover {
+  background-color: #218838;
 }
 </style>
