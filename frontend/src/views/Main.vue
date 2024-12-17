@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {VOICECHAT_URL} from "@/config.ts";
 import {onMounted, ref} from "vue";
+import apiClient from '@/axios';
 
 const CHUNK = 500;
 
@@ -12,10 +13,11 @@ let socket: WebSocket | null = null;
 let token: string | null = null;
 const userData: object = ref({
   default_avatar_id: '0/0-0',
-  login: 'unauthorized',
+  login: '',
 });
 
 const isConnected = ref(false);
+const textMessage = ref("");
 
 
 async function initAudio(): Promise<void> {
@@ -39,15 +41,19 @@ async function initAudio(): Promise<void> {
   socket.binaryType = 'arraybuffer';
 
   socket.onmessage = (event: MessageEvent) => {
-    const arrayBuffer = event.data as ArrayBuffer;
-    audioContext?.decodeAudioData(arrayBuffer, (buffer: AudioBuffer) => {
-      const source = audioContext?.createBufferSource();
-      if (source) {
-        source.buffer = buffer;
-        source.connect(audioContext?.destination as AudioNode);
-        source.start();
-      }
-    });
+    if (typeof event.data === 'string') {
+      handleTextMessage(event.data);
+    } else if (event.data instanceof ArrayBuffer) {
+      const arrayBuffer = event.data as ArrayBuffer;
+      audioContext?.decodeAudioData(arrayBuffer, (buffer: AudioBuffer) => {
+        const source = audioContext?.createBufferSource();
+        if (source) {
+          source.buffer = buffer;
+          source.connect(audioContext?.destination as AudioNode);
+          source.start();
+        }
+      });
+    }
   };
 }
 
@@ -72,6 +78,19 @@ async function disconnect(): Promise<void> {
   console.log('Запись закончилась');
 }
 
+function handleTextMessage(message: string): void {
+  console.log('Получено сообщение:', message);
+}
+
+async function sendTextMessage(): Promise<void> {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(textMessage.value);
+    console.log('Текстовое сообщение отправлено:', textMessage.value);
+  } else {
+    console.error('WebSocket не подключен или не готов для отправки сообщений.');
+  }
+}
+
 async function getUserInfo(): Promise<object | null> {
   try {
     token = localStorage.getItem("token");
@@ -88,10 +107,18 @@ async function getUserInfo(): Promise<object | null> {
   }
 }
 
+async function authDRF(login: string, image_url: string): Promise<void> {
+  await apiClient.post('auth', {login: login, image_url: image_url}).then(response => {
+    console.log(response.data);
+    localStorage.setItem("authToken", response.data.token);
+  });
+}
+
 onMounted(async () => {
   window.history.replaceState({}, document.title, window.location.pathname);
-  await getUserInfo().then((data) => {
+  await getUserInfo().then(async (data) => {
     userData.value = data;
+    await authDRF(data?.login, data?.default_avatar_id);
     console.log(userData.value);
   });
 });
@@ -107,6 +134,10 @@ onMounted(async () => {
     <h1>Подключение по IP</h1>
     <button v-if="!isConnected" @click="connect">Подключиться</button>
     <button v-else @click="disconnect" style="background-color: #df3915">Отключиться</button>
+  </div>
+  <div v-if="isConnected" class="message-form">
+    <textarea placeholder="Введите ваше сообщение" v-model="textMessage"></textarea>
+    <button type="button" @click="sendTextMessage">Отправить</button>
   </div>
 </template>
 
@@ -174,5 +205,37 @@ button:hover {
   font-size: 18px;
   font-weight: bold;
   color: #333;
+}
+
+.message-form {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 300px;
+}
+
+.message-form textarea {
+  width: 100%;
+  height: 100px;
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: none;
+}
+
+.message-form button {
+  width: 100%;
+  padding: 10px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.message-form button:hover {
+  background-color: #218838;
 }
 </style>

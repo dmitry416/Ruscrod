@@ -1,2 +1,206 @@
-from rest_framework import generics
-from models import User
+from django.db.models import Q
+from rest_framework import viewsets, status
+from rest_framework.decorators import action, permission_classes
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.authtoken.models import Token
+
+from .models import User, Room, Server, Friendship, UserRoom, ServerMember, Message
+from .serializers import UserSerializer, RoomSerializer, ServerSerializer, FriendshipSerializer, UserRoomSerializer, \
+    ServerMemberSerializer, MessageSerializer
+from rest_framework.permissions import IsAuthenticated
+
+
+class YandexAuthView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+        login_data = request.data.get('login')
+        image_url = request.data.get('image_url')
+
+        user, created = User.objects.get_or_create(username=login_data)
+
+        if created:
+            user.username = login_data
+        user.image = image_url
+        user.save()
+
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response({'token': token.key}, status=status.HTTP_200_OK)
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+    @action(detail=False, methods=['get'])
+    @permission_classes([IsAuthenticated])
+    def get_friends(self, request):
+        user = request.user
+        friends = user.friendships1.filter(is_friend=True) | user.friendships2.filter(is_friend=True)
+        serializer = FriendshipSerializer(friends, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    @permission_classes([IsAuthenticated])
+    def add_friend(self, request):
+        friend_name = request.data.get('name')
+        friend = User.objects.filter(username=friend_name).first()
+        if not friend:
+            return Response({"error": "Friend not found"}, status=status.HTTP_404_NOT_FOUND)
+        existing_friendship = Friendship.objects.filter(
+            (Q(user1=request.user, user2=friend) | Q(user1=friend, user2=request.user))).first()
+
+        if existing_friendship:
+            if existing_friendship.is_friend:
+                return Response({"message": "You are already friends"}, status=status.HTTP_200_OK)
+            else:
+                existing_friendship.is_friend = True
+                existing_friendship.save()
+                return Response({"message": "Friend request accepted"}, status=status.HTTP_200_OK)
+
+        Friendship.objects.create(user1=request.user, user2=friend, is_friend=False)
+
+        return Response({"message": "Friend request sent"}, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'])
+    @permission_classes([IsAuthenticated])
+    def delete_friend(self, request):
+        friend_name = request.data.get('name')
+        friend = User.objects.filter(username=friend_name).first()
+        if not friend:
+            return Response({"error": "Friend not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        Friendship.objects.filter(
+            Q(user1=request.user, user2=friend) | Q(user1=friend, user2=request.user)).delete()
+
+        return Response({"message": "Friendship deleted"}, status=status.HTTP_200_OK)
+
+
+class RoomViewSet(viewsets.ModelViewSet):
+    queryset = Room.objects.all()
+    serializer_class = RoomSerializer
+
+    @action(detail=False, methods=['get'])
+    @permission_classes([IsAuthenticated])
+    def get_rooms(self, request):
+        user = request.user
+        rooms = user.user_rooms.filter(room__server__isnull=True).prefetch_related('room')
+        serializer = RoomSerializer(rooms, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    @permission_classes([IsAuthenticated])
+    def get_room_messages(self, request, pk=None):
+        room = self.get_object()
+        page = request.query_params.get('page', 1)
+        messages = room.messages.order_by('-timestamp')[(page - 1) * 10:page * 10]
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    @permission_classes([IsAuthenticated])
+    def get_room_members(self, request, pk=None):
+        room = self.get_object()
+        members = room.room_users.all()
+        serializer = UserSerializer(members, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    @permission_classes([IsAuthenticated])
+    def create_room(self, request):
+        name = request.data.get('name')
+        friend_name = request.data.get('friend_name')
+        friend = User.objects.filter(username=friend_name).first()
+        if not friend:
+            return Response({"error": "Friend not found"}, status=status.HTTP_404_NOT_FOUND)
+        room = Room.objects.create(name=name)
+        UserRoom.objects.create(user=request.user, room=room)
+        UserRoom.objects.create(user=friend, room=room)
+        return Response(RoomSerializer(room).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'])
+    @permission_classes([IsAuthenticated])
+    def add_friend_to_room(self, request, pk=None):
+        room = self.get_object()
+        friend_name = request.data.get('friend_name')
+        friend = User.objects.filter(username=friend_name).first()
+        if not friend:
+            return Response({"error": "Friend not found"}, status=status.HTTP_404_NOT_FOUND)
+        UserRoom.objects.create(user=friend, room=room)
+        return Response({"message": "Friend added to room"}, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'])
+    @permission_classes([IsAuthenticated])
+    def join_room(self, request, pk=None):  # потом переделать
+        room = self.get_object()
+        UserRoom.objects.create(user=request.user, room=room)
+        return Response({"message": "Joined room"}, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'])
+    @permission_classes([IsAuthenticated])
+    def leave_from_room(self, request, pk=None):  # тоже потом переделать
+        room = self.get_object()
+        UserRoom.objects.filter(user=request.user, room=room).delete()
+        return Response({"message": "Left room"}, status=status.HTTP_200_OK)
+
+
+class ServerViewSet(viewsets.ModelViewSet):
+    queryset = Server.objects.all()
+    serializer_class = ServerSerializer
+
+    @action(detail=False, methods=['get'])
+    @permission_classes([IsAuthenticated])
+    def get_servers(self, request):
+        user = request.user
+        servers = user.servers.all()
+        serializer = ServerSerializer(servers, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    @permission_classes([IsAuthenticated])
+    def get_server_rooms(self, request, pk=None):
+        server = self.get_object()
+        rooms = Room.objects.filter(server=server)
+        serializer = RoomSerializer(rooms, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    @permission_classes([IsAuthenticated])
+    def create_server(self, request):
+        name = request.data.get('name')
+        image = request.data.get('image')
+        server = Server.objects.create(name=name, image=image, owner=request.user)
+        ServerMember.objects.create(server=server, user=request.user)
+        return Response(ServerSerializer(server).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'])
+    @permission_classes([IsAuthenticated])
+    def set_server_image(self, request, pk=None):
+        server = self.get_object()
+        if server.owner != request.user:
+            return Response({"error": "You are not the owner of this server"}, status=status.HTTP_403_FORBIDDEN)
+        image = request.data.get('image')
+        server.image = image
+        server.save()
+        return Response(ServerSerializer(server).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    @permission_classes([IsAuthenticated])
+    def create_server_room(self, request, pk=None):
+        server = self.get_object()
+        if server.owner != request.user:
+            return Response({"error": "You are not the owner of this server"}, status=status.HTTP_403_FORBIDDEN)
+        name = request.data.get('name')
+        room = Room.objects.create(name=name, server=server)
+        return Response(RoomSerializer(room).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'])
+    @permission_classes([IsAuthenticated])
+    def delete_server_room(self, request, pk=None):
+        room = self.get_object()
+        if room.server.owner != request.user:
+            return Response({"error": "You are not the owner of this server"}, status=status.HTTP_403_FORBIDDEN)
+        room.delete()
+        return Response({"message": "Room deleted"}, status=status.HTTP_200_OK)
