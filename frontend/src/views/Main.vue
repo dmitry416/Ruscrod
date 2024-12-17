@@ -19,6 +19,9 @@ const userData: object = ref({
 const isConnected = ref(false);
 const textMessage = ref("");
 
+const cur_room_id = ref(0);
+// пока чисто для теста. Чтобы у вас работало, нужна комната с 0 индексом. Через админку не получится добавить, учимся писать SQL запросы
+
 
 async function initAudio(): Promise<void> {
   audioContext = new AudioContext();
@@ -37,7 +40,7 @@ async function initAudio(): Promise<void> {
     }
   };
 
-  socket = new WebSocket(`ws://127.0.0.1:8000/ws/${VOICECHAT_URL}`);
+  socket = new WebSocket(`ws://127.0.0.1:8000/ws/${VOICECHAT_URL}/${cur_room_id.value}/`);
   socket.binaryType = 'arraybuffer';
 
   socket.onmessage = (event: MessageEvent) => {
@@ -84,7 +87,11 @@ function handleTextMessage(message: string): void {
 
 async function sendTextMessage(): Promise<void> {
   if (socket && socket.readyState === WebSocket.OPEN) {
-    socket.send(textMessage.value);
+    socket.send(JSON.stringify({
+      type: "text_message",
+      data: textMessage.value,
+      username: userData.value.login
+    }));
     console.log('Текстовое сообщение отправлено:', textMessage.value);
   } else {
     console.error('WebSocket не подключен или не готов для отправки сообщений.');
@@ -120,6 +127,16 @@ onMounted(async () => {
     userData.value = data;
     await authDRF(data?.login, data?.default_avatar_id);
     console.log(userData.value);
+    // дальше идут запросы для теста, ну и как пример вам
+    await apiClient.get('users/get_friends/').then((data) => {
+      console.log(data);
+    });
+    await apiClient.get('rooms/get_rooms/').then((data) => {
+      console.log(data);
+    });
+    await apiClient.get('rooms/0/get_room_messages/?page=1').then((data) => {
+      console.log(data);
+    });
   });
 });
 </script>

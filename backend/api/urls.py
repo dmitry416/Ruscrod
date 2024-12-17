@@ -22,6 +22,7 @@ GET:
 /api/rooms/1/get_room_members
 /api/servers/get_servers
 /api/servers/1/get_server_rooms
+/api/servers/{server_id}/get_server_members
 
 POST:
 /api/users/add_friend  (для полноценной дружбы нужно, чтобы этот запрос отправили оба. пока так)

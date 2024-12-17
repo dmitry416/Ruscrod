@@ -4,7 +4,7 @@ from channels.auth import AuthMiddlewareStack
 from .consumers import RoomConsumer
 
 websocket_urlpatterns = [
-    path('ws/room', RoomConsumer.as_asgi()),
+    path('ws/room/<int:room_id>/', RoomConsumer.as_asgi()),
 ]
 
 application = ProtocolTypeRouter({
