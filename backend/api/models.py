@@ -32,12 +32,12 @@ class Friendship(models.Model):
 
 class UserRoom(models.Model):
     user = models.ForeignKey(User, related_name='user_rooms', on_delete=models.CASCADE)
-    room = models.ForeignKey(Room, related_name='user_rooms', on_delete=models.CASCADE)
+    room = models.ForeignKey(Room, related_name='room_users', on_delete=models.CASCADE)
 
 
 class ServerMember(models.Model):
     server = models.ForeignKey(Server, related_name='members', on_delete=models.CASCADE)
-    user = models.ForeignKey(User, related_name='server_memberships', on_delete=models.CASCADE)
+    user = models.ForeignKey(User, related_name='servers', on_delete=models.CASCADE)
 
 
 class Message(models.Model):

@@ -1,13 +1,12 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 
-class AudioConsumer(AsyncWebsocketConsumer):
+class RoomConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         await self.channel_layer.group_add("group", self.channel_name)
         await self.accept()
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard("group", self.channel_name)
-        print("Пидорасик съебался")
 
     async def receive(self, text_data=None, bytes_data=None):
         if text_data:

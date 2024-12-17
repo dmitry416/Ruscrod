@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {VOICECHAT_URL} from "@/config.ts";
 import {onMounted, ref} from "vue";
+import apiClient from '@/axios';
 
 const CHUNK = 500;
 
@@ -106,10 +107,18 @@ async function getUserInfo(): Promise<object | null> {
   }
 }
 
+async function authDRF(login: string, image_url: string): Promise<void> {
+  await apiClient.post('auth', {login: login, image_url: image_url}).then(response => {
+    console.log(response.data);
+    localStorage.setItem("authToken", response.data.token);
+  });
+}
+
 onMounted(async () => {
   window.history.replaceState({}, document.title, window.location.pathname);
-  await getUserInfo().then((data) => {
+  await getUserInfo().then(async (data) => {
     userData.value = data;
+    await authDRF(data?.login, data?.default_avatar_id);
     console.log(userData.value);
   });
 });

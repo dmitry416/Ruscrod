@@ -6,7 +6,7 @@ import {YANDEX_CLIENT_ID, YANDEX_CLIENT_SECRET, YANDEX_REDIRECT} from "@/config.
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
-        {path: '/', name: 'main', component: Main, meta: { requiresAuth: false }},
+        {path: '/', name: 'main', component: Main, meta: { requiresAuth: true }},
         {path: '/auth', name: 'auth', component: Auth},
     ],
 });
