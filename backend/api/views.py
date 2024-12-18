@@ -5,8 +5,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
 
-from .models import User, Room, Server, Friendship, UserRoom, ServerMember, Message
-from .serializers import UserSerializer, RoomSerializer, ServerSerializer, FriendshipSerializer, UserRoomSerializer, \
+from .models import User, Room, Server, Friendship, UserRoom, ServerMember
+from .serializers import UserSerializer, RoomSerializer, ServerSerializer, FriendshipSerializer, \
     ServerMemberSerializer, MessageSerializer
 from rest_framework.permissions import IsAuthenticated
 
@@ -86,7 +86,7 @@ class RoomViewSet(viewsets.ModelViewSet):
     @permission_classes([IsAuthenticated])
     def get_rooms(self, request):
         user = request.user
-        rooms = user.user_rooms.filter(room__server__isnull=True).prefetch_related('room')
+        rooms = Room.objects.filter(room_users__user=user, server__isnull=True)
         serializer = RoomSerializer(rooms, many=True)
         return Response(serializer.data)
 
@@ -94,7 +94,7 @@ class RoomViewSet(viewsets.ModelViewSet):
     @permission_classes([IsAuthenticated])
     def get_room_messages(self, request, pk=None):
         room = self.get_object()
-        page = request.query_params.get('page', 1)
+        page = int(request.query_params.get('page', 1))
         messages = room.messages.order_by('-timestamp')[(page - 1) * 10:page * 10]
         serializer = MessageSerializer(messages, many=True)
         return Response(serializer.data)
@@ -130,20 +130,6 @@ class RoomViewSet(viewsets.ModelViewSet):
             return Response({"error": "Friend not found"}, status=status.HTTP_404_NOT_FOUND)
         UserRoom.objects.create(user=friend, room=room)
         return Response({"message": "Friend added to room"}, status=status.HTTP_201_CREATED)
-
-    @action(detail=True, methods=['post'])
-    @permission_classes([IsAuthenticated])
-    def join_room(self, request, pk=None):  # потом переделать
-        room = self.get_object()
-        UserRoom.objects.create(user=request.user, room=room)
-        return Response({"message": "Joined room"}, status=status.HTTP_201_CREATED)
-
-    @action(detail=True, methods=['post'])
-    @permission_classes([IsAuthenticated])
-    def leave_from_room(self, request, pk=None):  # тоже потом переделать
-        room = self.get_object()
-        UserRoom.objects.filter(user=request.user, room=room).delete()
-        return Response({"message": "Left room"}, status=status.HTTP_200_OK)
 
 
 class ServerViewSet(viewsets.ModelViewSet):
@@ -204,3 +190,11 @@ class ServerViewSet(viewsets.ModelViewSet):
             return Response({"error": "You are not the owner of this server"}, status=status.HTTP_403_FORBIDDEN)
         room.delete()
         return Response({"message": "Room deleted"}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'])
+    @permission_classes([IsAuthenticated])
+    def get_server_members(self, request, pk=None):
+        server = self.get_object()
+        members = server.members.all()
+        serializer = ServerMemberSerializer(members, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

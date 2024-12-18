@@ -3,7 +3,6 @@ from django.contrib.auth.models import AbstractUser
 
 
 class User(AbstractUser):
-    name = models.CharField(max_length=255)
     image = models.CharField(max_length=255)
     groups = models.ManyToManyField('auth.Group', related_name='api_user_set', blank=True,
                                     help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.',

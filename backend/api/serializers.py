@@ -12,26 +12,37 @@ class RoomSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'server']
 
 class ServerSerializer(serializers.ModelSerializer):
+    owner_username = serializers.CharField(source='user.username', read_only=True)
+
     class Meta:
         model = Server
-        fields = ['id', 'name', 'image', 'owner']
+        fields = ['id', 'name', 'image', 'owner_username']
 
 class FriendshipSerializer(serializers.ModelSerializer):
+    user1_username = serializers.CharField(source='user1.username', read_only=True)
+    user2_username = serializers.CharField(source='user2.username', read_only=True)
+
     class Meta:
         model = Friendship
-        fields = ['user1', 'user2', 'is_friend']
+        fields = ['user1_username', 'user2_username', 'is_friend']
 
 class UserRoomSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+
     class Meta:
         model = UserRoom
-        fields = ['user', 'room']
+        fields = ['username', 'room']
 
 class ServerMemberSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+
     class Meta:
         model = ServerMember
-        fields = ['server', 'user']
+        fields = ['server', 'username']
 
 class MessageSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+
     class Meta:
         model = Message
-        fields = ['id', 'room', 'user', 'message', 'timestamp']
+        fields = ['id', 'room', 'username', 'message', 'timestamp']
