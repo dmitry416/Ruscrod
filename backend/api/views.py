@@ -95,7 +95,7 @@ class RoomViewSet(viewsets.ModelViewSet):
     def get_room_messages(self, request, pk=None):
         room = self.get_object()
         page = int(request.query_params.get('page', 1))
-        messages = room.messages.order_by('-timestamp')[(page - 1) * 10:page * 10]
+        messages = room.messages.order_by('-timestamp')[(page - 1) * 50:page * 50]
         serializer = MessageSerializer(messages, many=True)
         return Response(serializer.data)
 

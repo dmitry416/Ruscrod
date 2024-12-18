@@ -12,7 +12,7 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
     setToken().then(() => {
-        const isAuthenticated = localStorage.getItem('authToken') // Проверка авторизации
+        const isAuthenticated = localStorage.getItem('token') // Проверка авторизации
 
         if (to.meta.requiresAuth && !isAuthenticated) {
             next('/auth')

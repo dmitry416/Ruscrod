@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import {onMounted, ref} from "vue";
 import apiClient from '@/axios';
+import {getFriends} from "../../api/user.ts";
+import {getRoomMembers, getRooms} from "../../api/room.ts";
 
 const CHUNK = 500;
 
@@ -18,10 +20,7 @@ const userData: object = ref({
 const isConnected = ref(false);
 const textMessage = ref("");
 
-const cur_room_id = ref(0);
-
-// пока чисто для теста. Чтобы у вас работало, нужна комната с 0 индексом. Через админку не получится добавить, учимся писать SQL запросы
-
+const cur_room_id = ref(1);
 
 async function initAudio(): Promise<void> {
   audioContext = new AudioContext();
@@ -32,7 +31,7 @@ async function initAudio(): Promise<void> {
     if (event.data.size > 0) {
       await event.data.arrayBuffer().then(
           (buffer) => {
-            if (socket?.OPEN) {
+            if (socket?.readyState == WebSocket.OPEN) {
               socket?.send(buffer);
               mediaRecorder?.stop();
               mediaRecorder?.start(CHUNK);
@@ -130,15 +129,15 @@ onMounted(async () => {
     await authDRF(data?.login, data?.default_avatar_id);
     console.log(userData.value);
     // дальше идут запросы для теста, ну и как пример вам
-    await apiClient.get('users/get_friends/').then((data) => {
-      console.log(data);
-    });
-    await apiClient.get('rooms/get_rooms/').then((data) => {
-      console.log(data);
-    });
-    await apiClient.get('rooms/0/get_room_messages/?page=1').then((data) => {
-      console.log(data);
-    });
+    await getFriends().then((request) => {
+      console.log(request);
+    })
+    await getRooms().then((request) => {
+      console.log(request);
+    })
+    await getRoomMembers(1, 1).then((request) => {
+      console.log(request);
+    })
   });
 });
 </script>

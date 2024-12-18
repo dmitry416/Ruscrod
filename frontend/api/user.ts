@@ -1,15 +1,16 @@
 import apiClient from "../src/axios";
+import type {AxiosInstance} from "axios";
 
 const userURL = 'users';
 
-export function getFriends(): any {
+export function getFriends(): Promise<AxiosInstance> {
     return apiClient.get(`${userURL}/get_friends/`)
 }
 
-export function addFriend(friendName: string): any {
+export function addFriend(friendName: string): Promise<AxiosInstance> {
     return apiClient.post(`${userURL}/add_friends/`, {name: friendName})
 }
 
-export function deleteFriend(friendName: string): any {
+export function deleteFriend(friendName: string): Promise<AxiosInstance> {
     return apiClient.post(`${userURL}/delete_friends/`, {name: friendName})
 }
