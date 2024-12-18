@@ -1,7 +1,6 @@
 import {createRouter, createWebHistory} from 'vue-router'
 import Auth from '../views/Auth.vue'
 import Main from '../views/Main.vue'
-import {YANDEX_CLIENT_ID, YANDEX_CLIENT_SECRET, YANDEX_REDIRECT} from "@/config.ts";
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -36,9 +35,9 @@ async function setToken() {
             body: new URLSearchParams({
                 grant_type: 'authorization_code',
                 code: code,
-                client_id: YANDEX_CLIENT_ID,
-                client_secret: YANDEX_CLIENT_SECRET,
-                redirect_uri: YANDEX_REDIRECT
+                client_id: import.meta.env.VITE_YANDEX_CLIENT_ID,
+                client_secret: import.meta.env.VITE_YANDEX_CLIENT_SECRET,
+                redirect_uri: import.meta.env.VITE_YANDEX_REDIRECT
             })
         });
 

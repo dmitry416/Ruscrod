@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import {VOICECHAT_URL} from "@/config.ts";
 import {onMounted, ref} from "vue";
 import apiClient from '@/axios';
 
@@ -40,7 +39,7 @@ async function initAudio(): Promise<void> {
     }
   };
 
-  socket = new WebSocket(`ws://127.0.0.1:8000/ws/${VOICECHAT_URL}/${cur_room_id.value}/`);
+  socket = new WebSocket(`ws://${import.meta.env.VITE_API_URL}/ws/${import.meta.env.VITE_ROOM_URL}/${cur_room_id.value}/`);
   socket.binaryType = 'arraybuffer';
 
   socket.onmessage = (event: MessageEvent) => {
