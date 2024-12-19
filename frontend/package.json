@@ -11,6 +11,7 @@
     "type-check": "vue-tsc --build"
   },
   "dependencies": {
+    "@carbon/vue": "^3.0.23",
     "axios": "^1.7.9",
     "dotenv": "^16.4.7",
     "vite-plugin-env": "^1.0.1",

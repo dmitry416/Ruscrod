@@ -227,3 +227,4 @@ ENV/
 /site
 
 /frontend/release/
+/redis/redisdata/

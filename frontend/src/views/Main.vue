@@ -2,7 +2,7 @@
 import {onMounted, ref} from "vue";
 import apiClient from '@/axios';
 import {getFriends} from "../../api/user.ts";
-import {getRoomMembers, getRooms} from "../../api/room.ts";
+import {getRoomMembers, getRoomMessages, getRooms} from "../../api/room.ts";
 
 const CHUNK = 500;
 
@@ -21,6 +21,14 @@ const isConnected = ref(false);
 const textMessage = ref("");
 
 const cur_room_id = ref(1);
+
+const messages = ['text1', 'text2', 'text3', 'jopa']
+let newMessage: ''
+const friends = ['Jack', 'Nigga', 'Pdior', "psdfsdf"]
+const servers = ['Anal rooms', 'Small penis group']
+const rooms = ['room1', 'room2', 'room3']
+
+const selectedIndex = ref(-1);
 
 async function initAudio(): Promise<void> {
   audioContext = new AudioContext();
@@ -135,125 +143,194 @@ onMounted(async () => {
     await getRooms().then((request) => {
       console.log(request);
     })
-    await getRoomMembers(1, 1).then((request) => {
+    await getRoomMessages(1, 1).then((request) => {
       console.log(request);
     })
   });
 });
 </script>
-
+<!--  <div class="user-info">-->
+<!--    <img :src="`https://avatars.yandex.net/get-yapic/${userData.default_avatar_id}/islands-retina-middle`"-->
+<!--         alt="User Image" class="user-avatar">-->
+<!--    <div class="user-name">{{ userData.login }}</div>-->
+<!--  </div>-->
+<!--  <div class="container">-->
+<!--    <h1>Подключение по IP</h1>-->
+<!--    <button v-if="!isConnected" @click="connect">Подключиться</button>-->
+<!--    <button v-else @click="disconnect" style="background-color: #df3915">Отключиться</button>-->
+<!--  </div>-->
+<!--  <div v-if="isConnected" class="message-form">-->
+<!--    <textarea placeholder="Введите ваше сообщение" v-model="textMessage"></textarea>-->
+<!--    <button type="button" @click="sendTextMessage">Отправить</button>-->
+<!--  </div>-->
 <template>
-  <div class="user-info">
-    <img :src="`https://avatars.yandex.net/get-yapic/${userData.default_avatar_id}/islands-retina-middle`"
-         alt="User Image" class="user-avatar">
-    <div class="user-name">{{ userData.login }}</div>
-  </div>
-  <div class="container">
-    <h1>Подключение по IP</h1>
-    <button v-if="!isConnected" @click="connect">Подключиться</button>
-    <button v-else @click="disconnect" style="background-color: #df3915">Отключиться</button>
-  </div>
-  <div v-if="isConnected" class="message-form">
-    <textarea placeholder="Введите ваше сообщение" v-model="textMessage"></textarea>
-    <button type="button" @click="sendTextMessage">Отправить</button>
+  <div class="app">
+    <header class="header">
+      <div class="header__left">Ruscord</div>
+      <div class="header__right">
+        <span class="header__username">Имя пользователя</span>
+        <img src="https://via.placeholder.com/40" alt="Avatar" class="header__avatar" />
+      </div>
+    </header>
+    <div class="main">
+      <div class="sidebar">
+        <cv-content-switcher aria-label='Choose content'  @selected="onSelected">
+          <cv-content-switcher-button content-selector=".content-1" :selected="selectedIndex === 0">Друзья</cv-content-switcher-button>
+          <cv-content-switcher-button content-selector=".content-2" :selected="selectedIndex === 1">Сервера</cv-content-switcher-button>
+        </cv-content-switcher>
+        <section style="margin: 10px 0;">
+          <div class="content-1">
+            <cv-search :placeholder="'Найти друзей'" @input="onInput"></cv-search>
+            <cv-button v-for="friend in friends" @click="onClick" class="sidebar-item" kind="secondary" default="Primary">{{friend}}</cv-button>
+          </div>
+          <div class="content-2">
+            <cv-search :placeholder="'Найти сервер'" @input="onInput"></cv-search>
+            <cv-button v-for="server in servers" @click="onClick" class="sidebar-item" kind="secondary" default="Primary">{{server}}</cv-button>
+          </div>
+        </section>
+      </div>
+      <div class="content">
+        <div class="chat-sidebar">
+          <div class="content-1">
+            <cv-button v-for="room in rooms" @click="onClick" class="sidebar-item" kind="secondary" default="Primary">{{room}}</cv-button>
+            <cv-button @click="onClick" class="sidebar-item" kind="primary" default="Primary">Создать комнату</cv-button>
+          </div>
+        </div>
+        <div class="chat">
+          <div class="chat__messages">
+            <div v-for="message in messages" class="chat__message">
+              <strong>{{ "username" }}:</strong> {{ message }}
+            </div>
+          </div>
+          <div class="chat__input">
+            <input
+                v-model="newMessage"
+                @keyup.enter="sendMessage"
+                type="text"
+                placeholder="Введите сообщение..."
+                class="chat__input-field"
+            />
+            <button @click="sendMessage" class="chat__send-button">Отправить</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
+* {
+  color: white;
+}
 body {
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
   margin: 0;
+  font-family: Arial, sans-serif;
 }
 
-.container {
-  background: #fff;
-  padding: 20px 30px;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  text-align: center;
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
 }
 
-h1 {
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #202225;
+  font-size: 20px;
+}
+
+.header__left {
+  font-weight: bold;
+}
+
+.header__right {
+  display: flex;
+  align-items: center;
+}
+
+.header__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-left: 10px;
+}
+
+.header__username {
+  font-size: 16px;
+}
+
+.main {
+  display: flex;
+  flex: 1;
+  background-color: #2f3136;
+}
+
+.sidebar {
+  width: 300px;
+  background-color: #202225;
+}
+
+.content {
+  display: flex;
+  flex: 1;
+}
+
+.chat-sidebar {
+  width: 300px;
+  background-color: #292b2f;
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  background-color: #36393f;
+  color: white;
+  padding: 20px;
+}
+
+.chat__messages {
+  flex: 1;
+  overflow-y: auto;
   margin-bottom: 20px;
-  font-size: 24px;
-  color: #333;
 }
 
-button {
-  width: 100%;
+.chat__message {
+  margin-bottom: 10px;
+}
+
+.chat__input {
+  display: flex;
+  align-items: center;
+}
+
+.chat__input-field {
+  flex: 1;
   padding: 10px;
-  background-color: #28a745;
-  color: #fff;
   border: none;
   border-radius: 5px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-button:hover {
-  background-color: #218838;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 20px;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  max-width: 300px;
-  background-color: #f9f9f9;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.user-avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.user-name {
-  font-size: 18px;
-  font-weight: bold;
-  color: #333;
-}
-
-.message-form {
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  width: 300px;
-}
-
-.message-form textarea {
-  width: 100%;
-  height: 100px;
-  margin-bottom: 10px;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  resize: none;
-}
-
-.message-form button {
-  width: 100%;
-  padding: 10px;
-  background-color: #28a745;
+  background-color: #40444b;
   color: white;
+  margin-right: 10px;
+}
+
+.chat__send-button {
+  padding: 10px 20px;
   border: none;
-  border-radius: 4px;
+  border-radius: 5px;
+  background-color: #7289da;
+  color: white;
   cursor: pointer;
 }
 
-.message-form button:hover {
-  background-color: #218838;
+.chat__send-button:hover {
+  background-color: #677bc4;
+}
+
+.sidebar-item {
+  width: 100%;
 }
 </style>
