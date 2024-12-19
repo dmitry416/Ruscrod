@@ -30,7 +30,7 @@ class RoomConsumer(AsyncWebsocketConsumer):
                 message=message_data
             )
 
-        await self.channel_layer.group_send(self.room_name, {"type": "text_message",
+            await self.channel_layer.group_send(self.room_name, {"type": "text_message",
                                                                  "message": message_data,
                                                                  "username": username,
                                                                  "timestamp": message.timestamp.isoformat()})

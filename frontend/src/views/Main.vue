@@ -3,6 +3,7 @@ import {onMounted, ref} from "vue";
 import apiClient from '@/axios';
 import {getFriends} from "../../api/user.ts";
 import {getRoomMembers, getRoomMessages, getRooms} from "../../api/room.ts";
+import {getServers, getServerRooms} from "../../api/server.ts";
 
 const CHUNK = 500;
 
@@ -22,11 +23,12 @@ const textMessage = ref("");
 
 const cur_room_id = ref(1);
 
-const messages = ['text1', 'text2', 'text3', 'jopa']
-let newMessage: ''
-const friends = ['Jack', 'Nigga', 'Pdior', "psdfsdf"]
-const servers = ['Anal rooms', 'Small penis group']
-const rooms = ['room1', 'room2', 'room3']
+const messages = ref([]);
+const newMessage = ref("");
+const friends = ref([]);
+const servers = ref([]);
+const rooms = ref([]);
+const serverRooms = ref([]);
 
 const selectedIndex = ref(-1);
 
@@ -69,8 +71,10 @@ async function initAudio(): Promise<void> {
   };
 }
 
-async function connect(): Promise<void> {
+async function connect(roomID: number): Promise<void> {
+  cur_room_id.value = roomID;
   isConnected.value = true;
+  await getMessageHistory(roomID, 1);
   await initAudio();
   mediaRecorder?.start(CHUNK);
   console.log('Запись началась');
@@ -92,6 +96,7 @@ async function disconnect(): Promise<void> {
 
 function handleTextMessage(message: string): void {
   console.log('Получено сообщение:', message);
+  messages.value.push(JSON.parse(message));
 }
 
 async function sendTextMessage(): Promise<void> {
@@ -101,10 +106,10 @@ async function sendTextMessage(): Promise<void> {
       data: textMessage.value,
       username: userData.value.login
     }));
-    console.log('Текстовое сообщение отправлено:', textMessage.value);
   } else {
     console.error('WebSocket не подключен или не готов для отправки сообщений.');
   }
+  textMessage.value = "";
 }
 
 async function getUserInfo(): Promise<object | null> {
@@ -125,9 +130,26 @@ async function getUserInfo(): Promise<object | null> {
 
 async function authDRF(login: string, image_url: string): Promise<void> {
   await apiClient.post('auth', {login: login, image_url: image_url}).then(response => {
-    console.log(response.data);
     localStorage.setItem("authToken", response.data.token);
   });
+}
+
+async function getCurServerRooms(serverID: number) {
+  serverRooms.value = [];
+  await getServerRooms(serverID).then(response => {
+    response.data.forEach((room: object) => {
+      serverRooms.value.push(room);
+    })
+  });
+}
+
+async function getMessageHistory(roomID: number, page: number) {
+  messages.value = [];
+  await getRoomMessages(roomID, page).then(response => {
+    response.data.forEach((message: object) => {
+      messages.value.unshift(message);
+    })
+  })
 }
 
 onMounted(async () => {
@@ -135,82 +157,76 @@ onMounted(async () => {
   await getUserInfo().then(async (data) => {
     userData.value = data;
     await authDRF(data?.login, data?.default_avatar_id);
-    console.log(userData.value);
-    // дальше идут запросы для теста, ну и как пример вам
-    await getFriends().then((request) => {
-      console.log(request);
-    })
-    await getRooms().then((request) => {
-      console.log(request);
-    })
-    await getRoomMessages(1, 1).then((request) => {
-      console.log(request);
+    await getFriends().then(request => {
+      request.data.forEach((friend: object) => {
+        friends.value.push(friend.user1_username === userData.value.login ? friend.user2_username : friend.user1_username);
+      })
+    });
+    await getRooms().then(request => {
+      request.data.forEach((room: object) => {
+        rooms.value.push(room);
+      })
+    });
+    await getServers().then(request => {
+      request.data.forEach((server: object) => {
+        servers.value.push(server);
+      })
     })
   });
 });
 </script>
-<!--  <div class="user-info">-->
-<!--    <img :src="`https://avatars.yandex.net/get-yapic/${userData.default_avatar_id}/islands-retina-middle`"-->
-<!--         alt="User Image" class="user-avatar">-->
-<!--    <div class="user-name">{{ userData.login }}</div>-->
-<!--  </div>-->
-<!--  <div class="container">-->
-<!--    <h1>Подключение по IP</h1>-->
-<!--    <button v-if="!isConnected" @click="connect">Подключиться</button>-->
-<!--    <button v-else @click="disconnect" style="background-color: #df3915">Отключиться</button>-->
-<!--  </div>-->
-<!--  <div v-if="isConnected" class="message-form">-->
-<!--    <textarea placeholder="Введите ваше сообщение" v-model="textMessage"></textarea>-->
-<!--    <button type="button" @click="sendTextMessage">Отправить</button>-->
-<!--  </div>-->
+
 <template>
   <div class="app">
     <header class="header">
       <div class="header__left">Ruscord</div>
       <div class="header__right">
-        <span class="header__username">Имя пользователя</span>
-        <img src="https://via.placeholder.com/40" alt="Avatar" class="header__avatar" />
+        <span class="header__username">{{ userData.login }}</span>
+        <img :src="`https://avatars.yandex.net/get-yapic/${userData.default_avatar_id}/islands-retina-middle`" alt="Avatar" class="header__avatar" />
       </div>
     </header>
     <div class="main">
       <div class="sidebar">
-        <cv-content-switcher aria-label='Choose content'  @selected="onSelected">
+        <cv-content-switcher aria-label='Choose content'  @selected="">
           <cv-content-switcher-button content-selector=".content-1" :selected="selectedIndex === 0">Друзья</cv-content-switcher-button>
           <cv-content-switcher-button content-selector=".content-2" :selected="selectedIndex === 1">Сервера</cv-content-switcher-button>
         </cv-content-switcher>
         <section style="margin: 10px 0;">
           <div class="content-1">
-            <cv-search :placeholder="'Найти друзей'" @input="onInput"></cv-search>
-            <cv-button v-for="friend in friends" @click="onClick" class="sidebar-item" kind="secondary" default="Primary">{{friend}}</cv-button>
+            <cv-search :placeholder="'Найти друзей'" @input=""></cv-search>
+            <cv-button v-for="friend in friends" @click="" class="sidebar-item" kind="secondary" default="Primary">{{friend}}</cv-button>
           </div>
           <div class="content-2">
-            <cv-search :placeholder="'Найти сервер'" @input="onInput"></cv-search>
-            <cv-button v-for="server in servers" @click="onClick" class="sidebar-item" kind="secondary" default="Primary">{{server}}</cv-button>
+            <cv-search :placeholder="'Найти сервер'" @input=""></cv-search>
+            <cv-button v-for="server in servers" @click="getCurServerRooms(server.id)" class="sidebar-item" kind="secondary" default="Primary">{{server.name}}</cv-button>
           </div>
         </section>
       </div>
       <div class="content">
         <div class="chat-sidebar">
           <div class="content-1">
-            <cv-button v-for="room in rooms" @click="onClick" class="sidebar-item" kind="secondary" default="Primary">{{room}}</cv-button>
-            <cv-button @click="onClick" class="sidebar-item" kind="primary" default="Primary">Создать комнату</cv-button>
+            <cv-button v-for="room in rooms" @click="connect(room.id)" class="sidebar-item" kind="secondary" default="Primary">{{room.name}}</cv-button>
+            <cv-button @click="" class="sidebar-item" kind="primary" default="Primary">Создать комнату</cv-button>
+          </div>
+          <div class="content-2">
+            <cv-button v-for="room in serverRooms" @click="connect(room.id)" class="sidebar-item" kind="secondary" default="Primary">{{room.name}}</cv-button>
           </div>
         </div>
         <div class="chat">
           <div class="chat__messages">
             <div v-for="message in messages" class="chat__message">
-              <strong>{{ "username" }}:</strong> {{ message }}
+              <strong>{{ message.username }}:</strong> {{ message.message }}
             </div>
           </div>
           <div class="chat__input">
             <input
-                v-model="newMessage"
-                @keyup.enter="sendMessage"
+                v-model="textMessage"
+                @keyup.enter="sendTextMessage"
                 type="text"
                 placeholder="Введите сообщение..."
                 class="chat__input-field"
             />
-            <button @click="sendMessage" class="chat__send-button">Отправить</button>
+            <button @click="sendTextMessage" class="chat__send-button">Отправить</button>
           </div>
         </div>
       </div>
