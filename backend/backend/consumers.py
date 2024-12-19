@@ -1,12 +1,13 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 from api.models import Room, User, Message
 import json
+from asgiref.sync import sync_to_async
 
 
 class RoomConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_id = self.scope['url_route']['kwargs']['room_id']
-        self.room = await Room.objects.aget(id=self.room_id)
+        self.room = await sync_to_async(Room.objects.get)(id=self.room_id)
         self.room_name = f"room_{self.room_id}"
         await self.channel_layer.group_add(self.room_name, self.channel_name)
         await self.accept()
@@ -22,13 +23,14 @@ class RoomConsumer(AsyncWebsocketConsumer):
             text_data_json = json.loads(text_data)
             message_data = text_data_json.get("data")
             username = text_data_json.get("username")
-            user = await User.objects.aget(username=username)
-            message = await Message.objects.acreate(
+            user = await sync_to_async(User.objects.get)(username=username)
+            message = await sync_to_async(Message.objects.create)(
                 room=self.room,
                 user=user,
                 message=message_data
             )
-            await self.channel_layer.group_send(self.room_name, {"type": "text_message",
+
+        await self.channel_layer.group_send(self.room_name, {"type": "text_message",
                                                                  "message": message_data,
                                                                  "username": username,
                                                                  "timestamp": message.timestamp.isoformat()})
