@@ -1,4 +1,6 @@
 from django.db.models import Q
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, permission_classes
 from rest_framework.response import Response
@@ -42,27 +44,32 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = FriendshipSerializer(friends, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['post'])
+
     @permission_classes([IsAuthenticated])
+    @action(detail=False, methods=['post'])
+    @csrf_exempt
     def add_friend(self, request):
         friend_name = request.data.get('name')
         friend = User.objects.filter(username=friend_name).first()
         if not friend:
-            return Response({"error": "Friend not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Пользователь не найден"}, status=status.HTTP_200_OK)
+        if friend.username == request.user.username:
+            return Response({"error": "С самим собой дружить нельзя!"}, status=status.HTTP_200_OK)
+
         existing_friendship = Friendship.objects.filter(
             (Q(user1=request.user, user2=friend) | Q(user1=friend, user2=request.user))).first()
 
         if existing_friendship:
             if existing_friendship.is_friend:
-                return Response({"message": "You are already friends"}, status=status.HTTP_200_OK)
+                return Response({"warning": "Пользователь уже у вас в друзьях"}, status=status.HTTP_200_OK)
             else:
                 existing_friendship.is_friend = True
                 existing_friendship.save()
-                return Response({"message": "Friend request accepted"}, status=status.HTTP_200_OK)
+                return Response({"success": "Запрос в друзья принят"}, status=status.HTTP_200_OK)
 
         Friendship.objects.create(user1=request.user, user2=friend, is_friend=False)
 
-        return Response({"message": "Friend request sent"}, status=status.HTTP_201_CREATED)
+        return Response({"success": "Запрос в друзья был отправлен"}, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['post'])
     @permission_classes([IsAuthenticated])

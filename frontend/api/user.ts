@@ -4,13 +4,13 @@ import type {AxiosInstance} from "axios";
 const userURL = 'users';
 
 export function getFriends(): Promise<AxiosInstance> {
-    return apiClient.get(`${userURL}/get_friends/`)
+    return apiClient.get(`${userURL}/get_friends/`);
 }
 
 export function addFriend(friendName: string): Promise<AxiosInstance> {
-    return apiClient.post(`${userURL}/add_friends/`, {name: friendName})
+    return apiClient.post(`${userURL}/add_friend/`, {name: friendName});
 }
 
 export function deleteFriend(friendName: string): Promise<AxiosInstance> {
-    return apiClient.post(`${userURL}/delete_friends/`, {name: friendName})
+    return apiClient.post(`${userURL}/delete_friends/`, {name: friendName});
 }

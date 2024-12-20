@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import {onMounted, ref} from "vue";
 import apiClient from '@/axios';
-import {getFriends} from "../../api/user.ts";
+import {getFriends, addFriend, deleteFriend} from "../../api/user.ts";
 import {getRoomMembers, getRoomMessages, getRooms} from "../../api/room.ts";
 import {getServers, getServerRooms} from "../../api/server.ts";
+import Notifications from "@/components/Notifications.vue";
 
 const CHUNK = 500;
 
@@ -24,13 +25,15 @@ const textMessage = ref("");
 const cur_room_id = ref(1);
 
 const messages = ref([]);
-const newMessage = ref("");
 const friends = ref([]);
 const servers = ref([]);
 const rooms = ref([]);
 const serverRooms = ref([]);
 
 const selectedIndex = ref(-1);
+
+const newFriend = ref("");
+const notifications = ref(null);
 
 async function initAudio(): Promise<void> {
   audioContext = new AudioContext();
@@ -152,16 +155,38 @@ async function getMessageHistory(roomID: number, page: number) {
   })
 }
 
+async function findFriend() {
+  if (newFriend.value.length > 0) {
+    await addFriend(newFriend.value).then(async response => {
+      if (response.data.error) {
+        notifications.value.addNotification("error", "Ошибка", response.data.error);
+      }
+      else if (response.data.warning) {
+        notifications.value.addNotification("warning", "Внимание", response.data.warning);
+      }
+      else if (response.data.success) {
+        notifications.value.addNotification("success", "Успешно", response.data.success);
+        await updateFriends();
+      }
+    });
+  }
+}
+
+async function updateFriends() {
+  friends.value = [];
+  await getFriends().then(request => {
+    request.data.forEach((friend: object) => {
+      friends.value.push(friend.user1_username === userData.value.login ? friend.user2_username : friend.user1_username);
+    })
+  });
+}
+
 onMounted(async () => {
   window.history.replaceState({}, document.title, window.location.pathname);
   await getUserInfo().then(async (data) => {
     userData.value = data;
     await authDRF(data?.login, data?.default_avatar_id);
-    await getFriends().then(request => {
-      request.data.forEach((friend: object) => {
-        friends.value.push(friend.user1_username === userData.value.login ? friend.user2_username : friend.user1_username);
-      })
-    });
+    await updateFriends();
     await getRooms().then(request => {
       request.data.forEach((room: object) => {
         rooms.value.push(room);
@@ -171,13 +196,14 @@ onMounted(async () => {
       request.data.forEach((server: object) => {
         servers.value.push(server);
       })
-    })
+    });
   });
 });
 </script>
 
 <template>
   <div class="app">
+    <Notifications ref="notifications"/>
     <header class="header">
       <div class="header__left">Ruscord</div>
       <div class="header__right">
@@ -193,7 +219,7 @@ onMounted(async () => {
         </cv-content-switcher>
         <section style="margin: 10px 0;">
           <div class="content-1">
-            <cv-search :placeholder="'Найти друзей'" @input=""></cv-search>
+            <cv-search :placeholder="'Найти друзей'" @input="" @keyup.enter="findFriend" v-model="newFriend"></cv-search>
             <cv-button v-for="friend in friends" @click="" class="sidebar-item" kind="secondary" default="Primary">{{friend}}</cv-button>
           </div>
           <div class="content-2">
