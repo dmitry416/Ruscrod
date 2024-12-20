@@ -12,5 +12,5 @@ export function addFriend(friendName: string): Promise<AxiosInstance> {
 }
 
 export function deleteFriend(friendName: string): Promise<AxiosInstance> {
-    return apiClient.post(`${userURL}/delete_friends/`, {name: friendName});
+    return apiClient.post(`${userURL}/delete_friend/`, {name: friendName});
 }

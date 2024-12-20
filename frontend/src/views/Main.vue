@@ -5,6 +5,7 @@ import {getFriends, addFriend, deleteFriend} from "../../api/user.ts";
 import {getRoomMembers, getRoomMessages, getRooms} from "../../api/room.ts";
 import {getServers, getServerRooms} from "../../api/server.ts";
 import Notifications from "@/components/Notifications.vue";
+import FriendField from "@/components/FriendField.vue";
 
 const CHUNK = 500;
 
@@ -169,6 +170,7 @@ async function findFriend() {
         await updateFriends();
       }
     });
+    newFriend.value = "";
   }
 }
 
@@ -178,6 +180,18 @@ async function updateFriends() {
     request.data.forEach((friend: object) => {
       friends.value.push(friend.user1_username === userData.value.login ? friend.user2_username : friend.user1_username);
     })
+  });
+}
+
+async function deleteMyFriend(friend: string) {
+  await deleteFriend(friend).then(async response => {
+    if (response.data.error) {
+      notifications.value.addNotification("error", "Ошибка", response.data.error);
+    }
+    else if (response.data.success) {
+      notifications.value.addNotification("success", "Успешно", response.data.success);
+    }
+    await updateFriends();
   });
 }
 
@@ -220,7 +234,7 @@ onMounted(async () => {
         <section style="margin: 10px 0;">
           <div class="content-1">
             <cv-search :placeholder="'Найти друзей'" @input="" @keyup.enter="findFriend" v-model="newFriend"></cv-search>
-            <cv-button v-for="friend in friends" @click="" class="sidebar-item" kind="secondary" default="Primary">{{friend}}</cv-button>
+            <FriendField v-for="friend in friends" :friend="friend" :delete-friend="deleteMyFriend"/>
           </div>
           <div class="content-2">
             <cv-search :placeholder="'Найти сервер'" @input=""></cv-search>

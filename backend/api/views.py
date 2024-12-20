@@ -1,6 +1,4 @@
 from django.db.models import Q
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, permission_classes
 from rest_framework.response import Response
@@ -47,7 +45,6 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @permission_classes([IsAuthenticated])
     @action(detail=False, methods=['post'])
-    @csrf_exempt
     def add_friend(self, request):
         friend_name = request.data.get('name')
         friend = User.objects.filter(username=friend_name).first()
@@ -63,6 +60,8 @@ class UserViewSet(viewsets.ModelViewSet):
             if existing_friendship.is_friend:
                 return Response({"warning": "Пользователь уже у вас в друзьях"}, status=status.HTTP_200_OK)
             else:
+                if existing_friendship.user1.username == request.user.username:
+                    return Response({"warning": "Запрос в друзья уже был отправлен"}, status=status.HTTP_200_OK)
                 existing_friendship.is_friend = True
                 existing_friendship.save()
                 return Response({"success": "Запрос в друзья принят"}, status=status.HTTP_200_OK)
@@ -77,12 +76,12 @@ class UserViewSet(viewsets.ModelViewSet):
         friend_name = request.data.get('name')
         friend = User.objects.filter(username=friend_name).first()
         if not friend:
-            return Response({"error": "Friend not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Пользователь не найден"}, status=status.HTTP_200_OK)
 
         Friendship.objects.filter(
             Q(user1=request.user, user2=friend) | Q(user1=friend, user2=request.user)).delete()
 
-        return Response({"message": "Friendship deleted"}, status=status.HTTP_200_OK)
+        return Response({"success": "Вы бросили своего друга"}, status=status.HTTP_200_OK)
 
 
 class RoomViewSet(viewsets.ModelViewSet):
@@ -118,13 +117,8 @@ class RoomViewSet(viewsets.ModelViewSet):
     @permission_classes([IsAuthenticated])
     def create_room(self, request):
         name = request.data.get('name')
-        friend_name = request.data.get('friend_name')
-        friend = User.objects.filter(username=friend_name).first()
-        if not friend:
-            return Response({"error": "Friend not found"}, status=status.HTTP_404_NOT_FOUND)
         room = Room.objects.create(name=name)
         UserRoom.objects.create(user=request.user, room=room)
-        UserRoom.objects.create(user=friend, room=room)
         return Response(RoomSerializer(room).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'])
