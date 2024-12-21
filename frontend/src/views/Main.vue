@@ -2,10 +2,12 @@
 import {onMounted, ref} from "vue";
 import apiClient from '@/axios';
 import {getFriends, addFriend, deleteFriend} from "../../api/user.ts";
-import {getRoomMembers, getRoomMessages, getRooms} from "../../api/room.ts";
+import {createRoom, getRoomMembers, getRoomMessages, getRooms} from "../../api/room.ts";
 import {getServers, getServerRooms} from "../../api/server.ts";
 import Notifications from "@/components/Notifications.vue";
 import FriendField from "@/components/FriendField.vue";
+import RoomModal from "@/components/RoomModal.vue";
+import RoomField from "@/components/RoomField.vue";
 
 const CHUNK = 500;
 
@@ -35,6 +37,7 @@ const selectedIndex = ref(-1);
 
 const newFriend = ref("");
 const notifications = ref(null);
+const rmodal = ref(null);
 
 async function initAudio(): Promise<void> {
   audioContext = new AudioContext();
@@ -195,22 +198,47 @@ async function deleteMyFriend(friend: string) {
   });
 }
 
+function showRoomModal() {
+  rmodal.value.showModal();
+}
+
+async function createMyRoom(roomName: string) {
+  console.log(roomName)
+  await createRoom(roomName).then(async response => {
+    await updateRooms();
+  })
+}
+
+async function updateRooms() {
+  rooms.value = []
+  await getRooms().then(request => {
+    request.data.forEach((room: object) => {
+      rooms.value.push(room);
+    })
+  });
+}
+
+async function updateServers() {
+  servers.value = [];
+  await getServers().then(request => {
+    request.data.forEach((server: object) => {
+      servers.value.push(server);
+    })
+  });
+}
+
+function showRoomSettings() {
+  console.log("Room settings");
+}
+
 onMounted(async () => {
   window.history.replaceState({}, document.title, window.location.pathname);
   await getUserInfo().then(async (data) => {
     userData.value = data;
     await authDRF(data?.login, data?.default_avatar_id);
     await updateFriends();
-    await getRooms().then(request => {
-      request.data.forEach((room: object) => {
-        rooms.value.push(room);
-      })
-    });
-    await getServers().then(request => {
-      request.data.forEach((server: object) => {
-        servers.value.push(server);
-      })
-    });
+    await updateRooms();
+    await updateServers();
   });
 });
 </script>
@@ -218,6 +246,7 @@ onMounted(async () => {
 <template>
   <div class="app">
     <Notifications ref="notifications"/>
+    <RoomModal ref="rmodal" :on-create="createMyRoom"/>
     <header class="header">
       <div class="header__left">Ruscord</div>
       <div class="header__right">
@@ -245,8 +274,9 @@ onMounted(async () => {
       <div class="content">
         <div class="chat-sidebar">
           <div class="content-1">
-            <cv-button v-for="room in rooms" @click="connect(room.id)" class="sidebar-item" kind="secondary" default="Primary">{{room.name}}</cv-button>
-            <cv-button @click="" class="sidebar-item" kind="primary" default="Primary">Создать комнату</cv-button>
+            <RoomField v-for="room in rooms" :id="room.id" :name="room.name" :connect="connect" :show-settings="showRoomSettings" />
+<!--            <cv-button v-for="room in rooms" @click="connect(room.id)" class="sidebar-item" kind="secondary" default="Primary">{{room.name}}</cv-button>-->
+            <cv-button @click="showRoomModal" class="sidebar-item" kind="primary" default="Primary">Создать комнату</cv-button>
           </div>
           <div class="content-2">
             <cv-button v-for="room in serverRooms" @click="connect(room.id)" class="sidebar-item" kind="secondary" default="Primary">{{room.name}}</cv-button>
