@@ -10,27 +10,26 @@ export default {
 </script>
 
 <template>
-  <div>
-    <img src="..frontend/images/logo.webp" alt=""
-         class="logo--image">
+  <div class="container">
+    <img src="@/images/logo.webp" alt="" class="logo--image">
     <button class="button--in" @click="loginWithYandex">Войти через Яндекс</button>
   </div>
 </template>
 
-<!-- Александр, не забывайте писать scoped, если вы делаете стиль только для определенного компонента -->
 <style scoped>
-body {
+.container {
+  background-color: #2f3136;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   height: 100vh;
-  margin: 0;
 }
 
 .logo--image {
   max-width: 200px;
   height: auto;
-  margin-bottom: 20px;
+  margin-bottom: 80px;
 }
 
 .button--in {
@@ -42,8 +41,8 @@ body {
   font-weight: bold;
   cursor: pointer;
   transition: background-color 0.3s ease;
-  width: 200px;
-  height: 75px;
+  width: fit-content;
+  height: 50px;
 }
 
 .button--in:hover {
