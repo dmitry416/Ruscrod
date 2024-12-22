@@ -20,12 +20,15 @@ function handleClick() {
 .server-room-field {
   display: flex;
   align-items: center;
-  margin-bottom: 10px;
-  width: 100%;
+  margin: 10px;
+  width: calc(100% - 20px);
+  background-color: #36393f;
+  border-radius: 3px;
 }
 
 .room-button {
   flex-grow: 1;
   text-align: left;
+  background: 0;
 }
 </style>

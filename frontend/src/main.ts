@@ -1,5 +1,6 @@
 import './assets/main.css'
 import CarbonVue3 from '@carbon/vue'
+import '@carbon/icons-vue';
 import 'carbon-components/css/carbon-components.min.css';
 import { createApp } from 'vue'
 import App from './App.vue'

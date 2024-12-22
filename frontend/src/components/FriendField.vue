@@ -13,7 +13,7 @@ const isSelected = ref(false);
 <template>
   <div class="friend-field">
     <cv-button @click="isSelected = !isSelected" class="friend-button" kind="secondary" default="Primary">{{friend}}</cv-button>
-    <cv-button v-if="isSelected" @click="props.deleteFriend(friend)" kind="danger" class="friend-button">Удалить из друзей</cv-button>
+    <cv-button v-if="isSelected" @click="props.deleteFriend(friend)" kind="danger" class="friend-button delete">Удалить из друзей</cv-button>
   </div>
 </template>
 
@@ -22,10 +22,19 @@ const isSelected = ref(false);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  margin-bottom: 10px;
+  margin: 10px;
+  width: calc(100% - 20px);
+  border-radius: 3px;
 }
 
 .friend-button {
   width: 100%;
+  border-radius: 3px;
+  background-color: #36393f;
+}
+
+.delete {
+  margin-top: 10px;
+  background-color: #df3d3d
 }
 </style>

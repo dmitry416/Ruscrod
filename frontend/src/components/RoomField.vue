@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import {ref} from 'vue';
-
+import '@carbon/icons-vue'
 const props = defineProps<{
   id: number;
   name: string;
@@ -13,7 +12,7 @@ const props = defineProps<{
 <template>
   <div class="container">
     <cv-button @click="props.connect(id)" class="sidebar-item" kind="secondary" default="Primary">{{ name }}</cv-button>
-    <cv-icon-button @click="showSettings" label="Настройки" size="field" icon="Bee20" class="icon-right"/>
+    <cv-icon-button @click="showSettings" label="Настройки" size="field" icon="Settings20" class="icon-right"/>
   </div>
 </template>
 
@@ -21,15 +20,21 @@ const props = defineProps<{
 .container {
   display: flex;
   align-items: center;
-  width: 100%;
-  margin-bottom: 10px;
+  margin: 10px;
+  width: calc(100% - 20px);
+  background-color: #36393f;
+  border-radius: 3px;
 }
 
 .icon-right {
   margin-left: auto;
+  margin-right: 10px;
+  border-radius: 100%;
+  background-color: #7289da;
 }
 
 .sidebar-item {
   width: 80%;
+  background: 0;
 }
 </style>

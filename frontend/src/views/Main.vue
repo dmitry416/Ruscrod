@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import {onMounted, ref} from "vue";
+import {onMounted, reactive, ref} from "vue";
 import apiClient from '@/axios';
-import {getFriends, addFriend, deleteFriend} from "../../api/user.ts";
-import {createRoom, getRoomMembers, getRoomMessages, getRooms} from "../../api/room.ts";
-import {createServer, getServers, getServerRooms, createServerRoom} from "../../api/server.ts";
+import {getFriends, addFriend, deleteFriend} from "@api/user.ts";
+import {createRoom, getRoomMembers, getRoomMessages, getRooms} from "@api/room.ts";
+import {createServer, getServers, getServerRooms, createServerRoom} from "@api/server.ts";
 import Notifications from "@/components/Notifications.vue";
 import FriendField from "@/components/FriendField.vue";
 import RoomModal from "@/components/RoomModal.vue";
@@ -21,7 +21,7 @@ let mediaRecorder: MediaRecorder | null = null;
 let socket: WebSocket | null = null;
 
 let token: string | null = null;
-const userData: object = ref({
+const userData = reactive({
   default_avatar_id: '0/0-0',
   login: '',
 });
@@ -119,7 +119,7 @@ async function sendTextMessage(): Promise<void> {
     socket.send(JSON.stringify({
       type: "text_message",
       data: textMessage.value,
-      username: userData.value.login
+      username: userData.login
     }));
   } else {
     console.error('WebSocket не подключен или не готов для отправки сообщений.');
@@ -144,38 +144,26 @@ async function getUserInfo(): Promise<object | null> {
 }
 
 async function authDRF(login: string, image_url: string): Promise<void> {
-  await apiClient.post('auth', {login: login, image_url: image_url}).then(response => {
-    localStorage.setItem("authToken", response.data.token);
-  });
+  const response = await apiClient.post('auth', { login, image_url });
+  localStorage.setItem("authToken", response.data.token);
 }
 
 async function getCurServerRooms(serverID: number) {
-  serverRooms.value = [];
-  await getServerRooms(serverID).then(response => {
-    response.data.forEach((room: object) => {
-      serverRooms.value.push(room);
-    })
-  });
+  const response = await getServerRooms(serverID);
+  serverRooms.value = response.data;
   currentServer.value = servers.value.find(server => server.id === serverID);
-  if (currentServer.value) {
-    isOwner.value = currentServer.value.owner_username === userData.value.login;
-  } else {
-    isOwner.value = false;
-  }
+  isOwner.value = currentServer.value?.owner_username === userData.login;
 }
 
 async function getMessageHistory(roomID: number, page: number) {
-  messages.value = [];
-  await getRoomMessages(roomID, page).then(response => {
-    response.data.forEach((message: object) => {
-      messages.value.unshift(message);
-    })
-  })
+  const response = await getRoomMessages(roomID, page);
+  messages.value = response.data.reverse();
 }
 
 async function findFriend() {
   if (newFriend.value.length > 0) {
-    await addFriend(newFriend.value).then(async response => {
+    if (newFriend.value.length > 0) {
+      const response = await addFriend(newFriend.value);
       if (response.data.error) {
         notifications.value.addNotification("error", "Ошибка", response.data.error);
       } else if (response.data.warning) {
@@ -184,29 +172,26 @@ async function findFriend() {
         notifications.value.addNotification("success", "Успешно", response.data.success);
         await updateFriends();
       }
-    });
-    newFriend.value = "";
+      newFriend.value = "";
+    }
   }
 }
 
 async function updateFriends() {
   friends.value = [];
-  await getFriends().then(request => {
-    request.data.forEach((friend: object) => {
-      friends.value.push(friend.user1_username === userData.value.login ? friend.user2_username : friend.user1_username);
-    })
-  });
+  const response = await getFriends();
+  friends.value = response.data.map((friend: any) =>
+      friend.user1_username === userData.login ? friend.user2_username : friend.user1_username);
 }
 
 async function deleteMyFriend(friend: string) {
-  await deleteFriend(friend).then(async response => {
-    if (response.data.error) {
-      notifications.value.addNotification("error", "Ошибка", response.data.error);
-    } else if (response.data.success) {
-      notifications.value.addNotification("success", "Успешно", response.data.success);
-    }
-    await updateFriends();
-  });
+  const response = await deleteFriend(friend);
+  if (response.data.error) {
+    notifications.value.addNotification("error", "Ошибка", response.data.error);
+  } else if (response.data.success) {
+    notifications.value.addNotification("success", "Успешно", response.data.success);
+  }
+  await updateFriends();
 }
 
 function showRoomModal() {
@@ -223,17 +208,14 @@ function showServerRoomModal() {
 
 async function createMyRoom(roomName: string) {
   console.log(roomName)
-  await createRoom(roomName).then(async response => {
-    await updateRooms();
-  })
+  await createRoom(roomName);
+  await updateRooms();
 }
 
 async function createMyServer(name: string, image: File | null) {
   console.log(name)
-  await createServer(name, image).then(async response => {
-    console.log(response.data.name);
-    await updateServers();
-  });
+  await createServer(name, image);
+  await updateServers();
 }
 
 async function createMyServerRoom(roomName: string) {
@@ -242,28 +224,18 @@ async function createMyServerRoom(roomName: string) {
     return;
   }
 
-  await createServerRoom(currentServer.value.id, roomName).then(async response => {
-    console.log(response.data)
-    await getCurServerRooms(currentServer.value.id);
-  });
+  await createServerRoom(currentServer.value.id, roomName);
+  await getCurServerRooms(currentServer.value.id);
 }
 
 async function updateRooms() {
-  rooms.value = []
-  await getRooms().then(request => {
-    request.data.forEach((room: object) => {
-      rooms.value.push(room);
-    })
-  });
+  const response = await getRooms();
+  rooms.value = response.data;
 }
 
 async function updateServers() {
-  servers.value = [];
-  await getServers().then(request => {
-    request.data.forEach((server: object) => {
-      servers.value.push(server);
-    })
-  });
+  const response = await getServers();
+  servers.value = response.data;
 }
 
 function showRoomSettings() {
@@ -272,13 +244,14 @@ function showRoomSettings() {
 
 onMounted(async () => {
   window.history.replaceState({}, document.title, window.location.pathname);
-  await getUserInfo().then(async (data) => {
-    userData.value = data;
-    await authDRF(data?.login, data?.default_avatar_id);
+  const data = await getUserInfo();
+  if (data) {
+    Object.assign(userData, data);
+    await authDRF(data.login, data.default_avatar_id);
     await updateFriends();
     await updateRooms();
     await updateServers();
-  });
+  }
 });
 </script>
 
@@ -287,7 +260,7 @@ onMounted(async () => {
     <Notifications ref="notifications"/>
     <RoomModal ref="rmodal" :on-create="createMyRoom"/>
     <ServerModal ref="smodal" :on-create="createMyServer"/>
-    <ServerRoomModal ref="srmodal" :on-create="createMyServerRoom" />
+    <ServerRoomModal ref="srmodal" :on-create="createMyServerRoom"/>
     <header class="header">
       <div class="header__left">Ruscord</div>
       <div class="header__right">
@@ -307,14 +280,14 @@ onMounted(async () => {
         <section style="margin: 10px 0;">
           <div class="content-1">
             <cv-search :placeholder="'Найти друзей'" @input="" @keyup.enter="findFriend"
-                       v-model="newFriend"></cv-search>
+                       v-model="newFriend" class="search"></cv-search>
             <FriendField v-for="friend in friends" :friend="friend" :delete-friend="deleteMyFriend"/>
           </div>
           <div class="content-2">
-            <cv-search :placeholder="'Найти сервер'" @input=""></cv-search>
+            <cv-search :placeholder="'Найти сервер'" @input="" class="search"></cv-search>
             <ServerField v-for="server in servers" :server="server" :getServerRooms="getCurServerRooms"/>
             <!--            <cv-button v-for="server in servers" @click="getCurServerRooms(server.id)" class="sidebar-item" kind="secondary" default="Primary">{{ server.name }}</cv-button>-->
-            <cv-button @click="showServerModal" class="sidebar-item" kind="primary" default="Primary">Создать сервер
+            <cv-button @click="showServerModal" class="sidebar-item primary" kind="primary" default="Primary">Создать сервер
             </cv-button>
           </div>
         </section>
@@ -324,15 +297,12 @@ onMounted(async () => {
           <div class="content-1">
             <RoomField v-for="room in rooms" :id="room.id" :name="room.name" :connect="connect"
                        :show-settings="showRoomSettings"/>
-            <!--            <cv-button v-for="room in rooms" @click="connect(room.id)" class="sidebar-item" kind="secondary" default="Primary">{{room.name}}</cv-button>-->
-            <cv-button @click="showRoomModal" class="sidebar-item" kind="primary" default="Primary">Создать комнату
+            <cv-button @click="showRoomModal" class="sidebar-item primary" kind="primary" default="Primary">Создать комнату
             </cv-button>
           </div>
           <div class="content-2">
             <ServerRoomField v-for="room in serverRooms" :id="room.id" :name="room.name" :connect="connect"/>
-            <cv-button v-if="isOwner" @click="showServerRoomModal" class="sidebar-item" kind="primary">Создать канал
-            </cv-button>
-            <!--            <cv-button v-for="room in serverRooms" @click="connect(room.id)" class="sidebar-item" kind="secondary" default="Primary">{{room.name}}</cv-button>-->
+            <cv-button v-if="isOwner" @click="showServerRoomModal" class="sidebar-item primary" kind="primary">Создать канал</cv-button>
           </div>
         </div>
         <div class="chat">
@@ -472,5 +442,12 @@ body {
 
 .sidebar-item {
   width: 100%;
+}
+
+.primary {
+  border-radius: 3px;
+  background-color: #7289da;
+  margin: 10px;
+  width: calc(100% - 20px);
 }
 </style>

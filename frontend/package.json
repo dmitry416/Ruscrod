@@ -11,8 +11,11 @@
     "type-check": "vue-tsc --build"
   },
   "dependencies": {
+    "@carbon/icons-vue": "^10.99.1",
     "@carbon/vue": "^3.0.23",
     "axios": "^1.7.9",
+    "carbon-components-vue": "^0.0.1",
+    "carbon-icons": "^7.0.7",
     "dotenv": "^16.4.7",
     "vite-plugin-env": "^1.0.1",
     "vue": "^3.5.13",
@@ -24,6 +27,7 @@
     "@vitejs/plugin-vue": "^5.2.1",
     "@vue/tsconfig": "^0.7.0",
     "npm-run-all2": "^7.0.1",
+    "sass-embedded": "^1.83.0",
     "typescript": "~5.6.3",
     "vite": "^6.0.1",
     "vite-plugin-vue-devtools": "^7.6.5",

@@ -24,20 +24,24 @@ function handleClick() {
 .server-field {
   display: flex;
   align-items: center;
-  margin-bottom: 10px;
-  width: 100%;
+  margin: 10px;
+  width: calc(100% - 20px);
+  background-color: #36393f;
+  border-radius: 3px;
 }
 
 .server-avatar {
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   margin-right: 10px;
+  margin-left: 10px;
   object-fit: cover;
 }
 
 .server-button {
   flex-grow: 1;
   text-align: left;
+  background: 0;
 }
 </style>

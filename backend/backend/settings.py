@@ -42,9 +42,9 @@ ROOT_URLCONF = 'backend.urls'
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = '*'
 
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:5173',
-]
+# CSRF_TRUSTED_ORIGINS = [
+#     'http://localhost:5173',
+# ]
 
 TEMPLATES = [
     {
