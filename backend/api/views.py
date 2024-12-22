@@ -141,7 +141,7 @@ class ServerViewSet(viewsets.ModelViewSet):
     @permission_classes([IsAuthenticated])
     def get_servers(self, request):
         user = request.user
-        servers = Server.objects.filter(members__user=user)
+        servers = Server.objects.filter(members__user=user).select_related('owner')
         serializer = ServerSerializer(servers, many=True, context={'request': request})
         return Response(serializer.data)
 

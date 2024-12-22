@@ -3,7 +3,7 @@ import {onMounted, ref} from "vue";
 import apiClient from '@/axios';
 import {getFriends, addFriend, deleteFriend} from "../../api/user.ts";
 import {createRoom, getRoomMembers, getRoomMessages, getRooms} from "../../api/room.ts";
-import {createServer, getServers, getServerRooms} from "../../api/server.ts";
+import {createServer, getServers, getServerRooms, createServerRoom} from "../../api/server.ts";
 import Notifications from "@/components/Notifications.vue";
 import FriendField from "@/components/FriendField.vue";
 import RoomModal from "@/components/RoomModal.vue";
@@ -11,6 +11,7 @@ import RoomField from "@/components/RoomField.vue";
 import ServerModal from "@/components/ServerModal.vue";
 import ServerField from "@/components/ServerField.vue";
 import ServerRoomField from "@/components/ServerRoomField.vue";
+import ServerRoomModal from "@/components/ServerRoomModal.vue";
 
 const CHUNK = 500;
 
@@ -36,12 +37,15 @@ const servers = ref([]);
 const rooms = ref([]);
 const serverRooms = ref([]);
 
+const currentServer = ref(null);
+const isOwner = ref(false);
 const selectedIndex = ref(-1);
 
 const newFriend = ref("");
 const notifications = ref(null);
 const rmodal = ref(null);
 const smodal = ref(null);
+const srmodal = ref(null);
 
 async function initAudio(): Promise<void> {
   audioContext = new AudioContext();
@@ -152,6 +156,12 @@ async function getCurServerRooms(serverID: number) {
       serverRooms.value.push(room);
     })
   });
+  currentServer.value = servers.value.find(server => server.id === serverID);
+  if (currentServer.value) {
+    isOwner.value = currentServer.value.owner_username === userData.value.login;
+  } else {
+    isOwner.value = false;
+  }
 }
 
 async function getMessageHistory(roomID: number, page: number) {
@@ -168,11 +178,9 @@ async function findFriend() {
     await addFriend(newFriend.value).then(async response => {
       if (response.data.error) {
         notifications.value.addNotification("error", "Ошибка", response.data.error);
-      }
-      else if (response.data.warning) {
+      } else if (response.data.warning) {
         notifications.value.addNotification("warning", "Внимание", response.data.warning);
-      }
-      else if (response.data.success) {
+      } else if (response.data.success) {
         notifications.value.addNotification("success", "Успешно", response.data.success);
         await updateFriends();
       }
@@ -194,8 +202,7 @@ async function deleteMyFriend(friend: string) {
   await deleteFriend(friend).then(async response => {
     if (response.data.error) {
       notifications.value.addNotification("error", "Ошибка", response.data.error);
-    }
-    else if (response.data.success) {
+    } else if (response.data.success) {
       notifications.value.addNotification("success", "Успешно", response.data.success);
     }
     await updateFriends();
@@ -210,6 +217,10 @@ function showServerModal() {
   smodal.value.showModal();
 }
 
+function showServerRoomModal() {
+  srmodal.value.showModal();
+}
+
 async function createMyRoom(roomName: string) {
   console.log(roomName)
   await createRoom(roomName).then(async response => {
@@ -219,9 +230,21 @@ async function createMyRoom(roomName: string) {
 
 async function createMyServer(name: string, image: File | null) {
   console.log(name)
-  await createServer(name, image).then(async (response) => {
-    console.log('Сервер создан:', response.data.name);
+  await createServer(name, image).then(async response => {
+    console.log(response.data.name);
     await updateServers();
+  });
+}
+
+async function createMyServerRoom(roomName: string) {
+  if (!currentServer.value) {
+    console.error("Текущий сервер не выбран");
+    return;
+  }
+
+  await createServerRoom(currentServer.value.id, roomName).then(async response => {
+    console.log(response.data)
+    await getCurServerRooms(currentServer.value.id);
   });
 }
 
@@ -263,43 +286,53 @@ onMounted(async () => {
   <div class="app">
     <Notifications ref="notifications"/>
     <RoomModal ref="rmodal" :on-create="createMyRoom"/>
-    <ServerModal ref="smodal" :on-create="createMyServer" />
+    <ServerModal ref="smodal" :on-create="createMyServer"/>
+    <ServerRoomModal ref="srmodal" :on-create="createMyServerRoom" />
     <header class="header">
       <div class="header__left">Ruscord</div>
       <div class="header__right">
         <span class="header__username">{{ userData.login }}</span>
-        <img :src="`https://avatars.yandex.net/get-yapic/${userData.default_avatar_id}/islands-retina-middle`" alt="Avatar" class="header__avatar" />
+        <img :src="`https://avatars.yandex.net/get-yapic/${userData.default_avatar_id}/islands-retina-middle`"
+             alt="Avatar" class="header__avatar"/>
       </div>
     </header>
     <div class="main">
       <div class="sidebar">
-        <cv-content-switcher aria-label='Choose content'  @selected="">
-          <cv-content-switcher-button content-selector=".content-1" :selected="selectedIndex === 0">Друзья</cv-content-switcher-button>
-          <cv-content-switcher-button content-selector=".content-2" :selected="selectedIndex === 1">Сервера</cv-content-switcher-button>
+        <cv-content-switcher aria-label='Choose content' @selected="">
+          <cv-content-switcher-button content-selector=".content-1" :selected="selectedIndex === 0">Друзья
+          </cv-content-switcher-button>
+          <cv-content-switcher-button content-selector=".content-2" :selected="selectedIndex === 1">Сервера
+          </cv-content-switcher-button>
         </cv-content-switcher>
         <section style="margin: 10px 0;">
           <div class="content-1">
-            <cv-search :placeholder="'Найти друзей'" @input="" @keyup.enter="findFriend" v-model="newFriend"></cv-search>
+            <cv-search :placeholder="'Найти друзей'" @input="" @keyup.enter="findFriend"
+                       v-model="newFriend"></cv-search>
             <FriendField v-for="friend in friends" :friend="friend" :delete-friend="deleteMyFriend"/>
           </div>
           <div class="content-2">
             <cv-search :placeholder="'Найти сервер'" @input=""></cv-search>
-            <ServerField v-for="server in servers" :server="server" :getServerRooms="getCurServerRooms" />
-<!--            <cv-button v-for="server in servers" @click="getCurServerRooms(server.id)" class="sidebar-item" kind="secondary" default="Primary">{{ server.name }}</cv-button>-->
-            <cv-button @click="showServerModal" class="sidebar-item" kind="primary" default="Primary">Создать сервер</cv-button>
+            <ServerField v-for="server in servers" :server="server" :getServerRooms="getCurServerRooms"/>
+            <!--            <cv-button v-for="server in servers" @click="getCurServerRooms(server.id)" class="sidebar-item" kind="secondary" default="Primary">{{ server.name }}</cv-button>-->
+            <cv-button @click="showServerModal" class="sidebar-item" kind="primary" default="Primary">Создать сервер
+            </cv-button>
           </div>
         </section>
       </div>
       <div class="content">
         <div class="chat-sidebar">
           <div class="content-1">
-            <RoomField v-for="room in rooms" :id="room.id" :name="room.name" :connect="connect" :show-settings="showRoomSettings" />
-<!--            <cv-button v-for="room in rooms" @click="connect(room.id)" class="sidebar-item" kind="secondary" default="Primary">{{room.name}}</cv-button>-->
-            <cv-button @click="showRoomModal" class="sidebar-item" kind="primary" default="Primary">Создать комнату</cv-button>
+            <RoomField v-for="room in rooms" :id="room.id" :name="room.name" :connect="connect"
+                       :show-settings="showRoomSettings"/>
+            <!--            <cv-button v-for="room in rooms" @click="connect(room.id)" class="sidebar-item" kind="secondary" default="Primary">{{room.name}}</cv-button>-->
+            <cv-button @click="showRoomModal" class="sidebar-item" kind="primary" default="Primary">Создать комнату
+            </cv-button>
           </div>
           <div class="content-2">
-            <ServerRoomField v-for="room in serverRooms" :id="room.id" :name="room.name" :connect="connect" />
-<!--            <cv-button v-for="room in serverRooms" @click="connect(room.id)" class="sidebar-item" kind="secondary" default="Primary">{{room.name}}</cv-button>-->
+            <ServerRoomField v-for="room in serverRooms" :id="room.id" :name="room.name" :connect="connect"/>
+            <cv-button v-if="isOwner" @click="showServerRoomModal" class="sidebar-item" kind="primary">Создать канал
+            </cv-button>
+            <!--            <cv-button v-for="room in serverRooms" @click="connect(room.id)" class="sidebar-item" kind="secondary" default="Primary">{{room.name}}</cv-button>-->
           </div>
         </div>
         <div class="chat">
@@ -328,6 +361,7 @@ onMounted(async () => {
 * {
   color: white;
 }
+
 body {
   margin: 0;
   font-family: Arial, sans-serif;

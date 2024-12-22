@@ -32,6 +32,10 @@ export function setServerImage(serverID: number, serverImage: string): Promise<A
     return apiClient.post(`${serverURL}/${serverID}/set_server_image/`, {image: serverImage})
 }
 
-export function creatServerRoom(roomID: number): Promise<AxiosInstance> {
+export function createServerRoom(serverId: number, serverRoomName: string): Promise<AxiosInstance> {
+    return apiClient.post(`${serverURL}/${serverId}/create_server_room/`, {name: serverRoomName})
+}
+
+export function deleteServerRoom(roomID: number): Promise<AxiosInstance> {
     return apiClient.post(`${serverURL}/${roomID}/delete_server_room/`)
 }

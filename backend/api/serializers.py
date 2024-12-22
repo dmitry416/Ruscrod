@@ -13,7 +13,7 @@ class RoomSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'server']
 
 class ServerSerializer(serializers.ModelSerializer):
-    owner_username = serializers.CharField(source='user.username', read_only=True)
+    owner_username = serializers.CharField(source='owner.username', read_only=True)
     image = serializers.SerializerMethodField()
 
     class Meta:
