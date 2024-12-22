@@ -142,7 +142,7 @@ class ServerViewSet(viewsets.ModelViewSet):
     def get_servers(self, request):
         user = request.user
         servers = Server.objects.filter(members__user=user)
-        serializer = ServerSerializer(servers, many=True)
+        serializer = ServerSerializer(servers, many=True, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=True, methods=['get'])
@@ -157,7 +157,7 @@ class ServerViewSet(viewsets.ModelViewSet):
     @permission_classes([IsAuthenticated])
     def create_server(self, request):
         name = request.data.get('name')
-        image = request.data.get('image')
+        image = request.FILES.get('image')
         server = Server.objects.create(name=name, image=image, owner=request.user)
         ServerMember.objects.create(server=server, user=request.user)
         return Response(ServerSerializer(server).data, status=status.HTTP_201_CREATED)

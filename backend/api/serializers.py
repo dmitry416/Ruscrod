@@ -1,4 +1,5 @@
 from rest_framework import serializers
+
 from .models import User, Room, Server, Friendship, UserRoom, ServerMember, Message
 
 class UserSerializer(serializers.ModelSerializer):
@@ -13,10 +14,17 @@ class RoomSerializer(serializers.ModelSerializer):
 
 class ServerSerializer(serializers.ModelSerializer):
     owner_username = serializers.CharField(source='user.username', read_only=True)
+    image = serializers.SerializerMethodField()
 
     class Meta:
         model = Server
         fields = ['id', 'name', 'image', 'owner_username']
+
+    def get_image(self, obj):
+        if not obj.image:
+            return None
+        request = self.context.get('request')
+        return request.build_absolute_uri(obj.image.url)
 
 class FriendshipSerializer(serializers.ModelSerializer):
     user1_username = serializers.CharField(source='user1.username', read_only=True)

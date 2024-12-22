@@ -3,11 +3,13 @@ import {onMounted, ref} from "vue";
 import apiClient from '@/axios';
 import {getFriends, addFriend, deleteFriend} from "../../api/user.ts";
 import {createRoom, getRoomMembers, getRoomMessages, getRooms} from "../../api/room.ts";
-import {getServers, getServerRooms} from "../../api/server.ts";
+import {createServer, getServers, getServerRooms} from "../../api/server.ts";
 import Notifications from "@/components/Notifications.vue";
 import FriendField from "@/components/FriendField.vue";
 import RoomModal from "@/components/RoomModal.vue";
 import RoomField from "@/components/RoomField.vue";
+import ServerModal from "@/components/ServerModal.vue";
+import ServerField from "@/components/ServerField.vue";
 
 const CHUNK = 500;
 
@@ -38,6 +40,7 @@ const selectedIndex = ref(-1);
 const newFriend = ref("");
 const notifications = ref(null);
 const rmodal = ref(null);
+const smodal = ref(null);
 
 async function initAudio(): Promise<void> {
   audioContext = new AudioContext();
@@ -202,11 +205,22 @@ function showRoomModal() {
   rmodal.value.showModal();
 }
 
+function showServerModal() {
+  smodal.value.showModal();
+}
+
 async function createMyRoom(roomName: string) {
   console.log(roomName)
   await createRoom(roomName).then(async response => {
     await updateRooms();
   })
+}
+
+async function createMyServer(name: string, image: File | null) {
+  console.log(name)
+  await createServer(name, image).then(async (response) => {
+    await updateServers();
+  });
 }
 
 async function updateRooms() {
@@ -247,6 +261,7 @@ onMounted(async () => {
   <div class="app">
     <Notifications ref="notifications"/>
     <RoomModal ref="rmodal" :on-create="createMyRoom"/>
+    <ServerModal ref="smodal" :on-create="createMyServer" />
     <header class="header">
       <div class="header__left">Ruscord</div>
       <div class="header__right">
@@ -267,7 +282,9 @@ onMounted(async () => {
           </div>
           <div class="content-2">
             <cv-search :placeholder="'Найти сервер'" @input=""></cv-search>
-            <cv-button v-for="server in servers" @click="getCurServerRooms(server.id)" class="sidebar-item" kind="secondary" default="Primary">{{server.name}}</cv-button>
+            <ServerField v-for="server in servers" :server="server" :getServerRooms="getCurServerRooms" />
+<!--            <cv-button v-for="server in servers" @click="getCurServerRooms(server.id)" class="sidebar-item" kind="secondary" default="Primary">{{ server.name }}</cv-button>-->
+            <cv-button @click="showServerModal" class="sidebar-item" kind="primary" default="Primary">Создать сервер</cv-button>
           </div>
         </section>
       </div>

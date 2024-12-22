@@ -15,8 +15,17 @@ export function getServerMembers(serverID: number): Promise<AxiosInstance> {
     return apiClient.get(`${serverURL}/${serverID}/get_server_members/`)
 }
 
-export function createServer(serverName: string, serverImage: string): Promise<AxiosInstance> {
-    return apiClient.post(`${serverURL}/create_server/`, {name: serverName, image: serverImage})
+export function createServer(serverName: string, serverImage: File | null): Promise<AxiosInstance> {
+    const formData = new FormData();
+    formData.append('name', serverName);
+    if (serverImage) {
+        formData.append('image', serverImage);
+    }
+    return apiClient.post(`${serverURL}/create_server/`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
 }
 
 export function setServerImage(serverID: number, serverImage: string): Promise<AxiosInstance> {
