@@ -14,11 +14,18 @@ export default defineComponent({
       this.isVisible = true;
       this.serverName = "";
       this.imageFile = null;
+      (this.$refs.fileUploader as any).clear();
     },
     handleImageChange(event: Event): void {
       const target = event.target as HTMLInputElement;
       if (target.files && target.files.length > 0) {
-        this.imageFile = target.files[0];
+        const file = target.files[0];
+        const allowedTypes = ['image/jpeg', 'image/png'];
+        if (!allowedTypes.includes(file.type)) {
+          this.imageFile = null;
+          return;
+        }
+        this.imageFile = file;
       }
     },
     createServer(): void {
@@ -52,7 +59,11 @@ export default defineComponent({
         @keyup.enter="createServer"
       />
       <cv-file-uploader
-        label="Загрузить изображение"
+        ref="fileUploader"
+        dropTargetLabel="Загрузить изображение сервера"
+        accept=".jpg,.png"
+        kind="button"
+        :multiple="false"
         @change="handleImageChange"
       />
     </template>

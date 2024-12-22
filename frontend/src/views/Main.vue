@@ -10,6 +10,7 @@ import RoomModal from "@/components/RoomModal.vue";
 import RoomField from "@/components/RoomField.vue";
 import ServerModal from "@/components/ServerModal.vue";
 import ServerField from "@/components/ServerField.vue";
+import ServerRoomField from "@/components/ServerRoomField.vue";
 
 const CHUNK = 500;
 
@@ -219,6 +220,7 @@ async function createMyRoom(roomName: string) {
 async function createMyServer(name: string, image: File | null) {
   console.log(name)
   await createServer(name, image).then(async (response) => {
+    console.log('Сервер создан:', response.data.name);
     await updateServers();
   });
 }
@@ -296,7 +298,8 @@ onMounted(async () => {
             <cv-button @click="showRoomModal" class="sidebar-item" kind="primary" default="Primary">Создать комнату</cv-button>
           </div>
           <div class="content-2">
-            <cv-button v-for="room in serverRooms" @click="connect(room.id)" class="sidebar-item" kind="secondary" default="Primary">{{room.name}}</cv-button>
+            <ServerRoomField v-for="room in serverRooms" :id="room.id" :name="room.name" :connect="connect" />
+<!--            <cv-button v-for="room in serverRooms" @click="connect(room.id)" class="sidebar-item" kind="secondary" default="Primary">{{room.name}}</cv-button>-->
           </div>
         </div>
         <div class="chat">
