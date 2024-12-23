@@ -3,7 +3,14 @@ import {onMounted, reactive, ref} from "vue";
 import apiClient from '@/axios';
 import {getFriends, addFriend, deleteFriend} from "@api/user.ts";
 import {createRoom, getRoomMembers, getRoomMessages, getRooms} from "@api/room.ts";
-import {createServer, getServers, getServerRooms, createServerRoom} from "@api/server.ts";
+import {
+  createServer,
+  getServers,
+  getServerRooms,
+  createServerRoom,
+  renameServerRoom,
+  deleteServerRoom
+} from "@api/server.ts";
 import Notifications from "@/components/Notifications.vue";
 import FriendField from "@/components/FriendField.vue";
 import RoomModal from "@/components/RoomModal.vue";
@@ -234,6 +241,18 @@ async function createMyServerRoom(roomName: string) {
   await getCurServerRooms(currentServer.value.id);
 }
 
+async function renameMyServerRoom(serverId: number, roomId: number, newName: string) {
+  console.log(`Переименование канала ${roomId} на "${newName}" на сервере "${serverId}"`);
+  await renameServerRoom(serverId, roomId, newName);
+  await getCurServerRooms(serverId);
+}
+
+async function deleteMyServerRoom(serverId: number, roomId: number) {
+  console.log(`Удаление канала ${roomId}`);
+  await deleteServerRoom(serverId, roomId);
+  await getCurServerRooms(serverId);
+}
+
 async function updateRooms() {
   const response = await getRooms();
   rooms.value = response.data;
@@ -309,9 +328,13 @@ onMounted(async () => {
             </cv-button>
           </div>
           <div class="content-2">
-            <ServerRoomField v-for="room in serverRooms" :id="room.id" :name="room.name" :connect="connect"/>
-            <cv-button v-if="isOwner" @click="showServerRoomModal" class="sidebar-item primary" kind="primary">Создать
-              канал
+            <ServerRoomField v-for="room in serverRooms" :id="room.id" :name="room.name"
+                             :connect="connect" :isOwner="isOwner"
+                             @rename-room="renameMyServerRoom(currentServer.id, room.id, $event)"
+                             @delete-room="deleteMyServerRoom(currentServer.id, room.id)"/>
+
+            <cv-button v-if="isOwner" @click="showServerRoomModal" class="sidebar-item primary" kind="primary">
+              Создать канал
             </cv-button>
           </div>
         </div>

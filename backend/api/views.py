@@ -192,11 +192,36 @@ class ServerViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     @permission_classes([IsAuthenticated])
     def delete_server_room(self, request, pk=None):
-        room = self.get_object()
-        if room.server.owner != request.user:
+        server = self.get_object()
+        if server.owner != request.user:
             return Response({"error": "You are not the owner of this server"}, status=status.HTTP_403_FORBIDDEN)
+        room_id = request.data.get('room_id')
+        if not room_id:
+            return Response({"error": "Room_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            room = Room.objects.get(id=room_id, server_id=server.id)
+        except Room.DoesNotExist:
+            return Response({"error": "Room not found"}, status=status.HTTP_404_NOT_FOUND)
         room.delete()
         return Response({"message": "Room deleted"}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    @permission_classes([IsAuthenticated])
+    def rename_server_room(self, request, pk=None):
+        server = self.get_object()
+        if server.owner != request.user:
+            return Response({"error": "You are not the owner of this server"}, status=status.HTTP_403_FORBIDDEN)
+        new_name = request.data.get('name')
+        room_id = request.data.get('room_id')
+        if not new_name or not room_id:
+            return Response({"error": "Name and room_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            room = Room.objects.get(id=room_id, server_id=server.id)
+        except Room.DoesNotExist:
+            return Response({"error": "Room not found"}, status=status.HTTP_404_NOT_FOUND)
+        room.name = new_name
+        room.save()
+        return Response({"message": "Room renamed"}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['get'])
     @permission_classes([IsAuthenticated])

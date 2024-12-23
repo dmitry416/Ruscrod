@@ -32,10 +32,14 @@ export function setServerImage(serverID: number, serverImage: string): Promise<A
     return apiClient.post(`${serverURL}/${serverID}/set_server_image/`, {image: serverImage})
 }
 
-export function createServerRoom(serverId: number, serverRoomName: string): Promise<AxiosInstance> {
-    return apiClient.post(`${serverURL}/${serverId}/create_server_room/`, {name: serverRoomName})
+export function createServerRoom(serverID: number, serverRoomName: string): Promise<AxiosInstance> {
+    return apiClient.post(`${serverURL}/${serverID}/create_server_room/`, {name: serverRoomName})
 }
 
-export function deleteServerRoom(roomID: number): Promise<AxiosInstance> {
-    return apiClient.post(`${serverURL}/${roomID}/delete_server_room/`)
+export function renameServerRoom(serverID: number, roomID: number, newName: string): Promise<AxiosInstance> {
+    return apiClient.post(`${serverURL}/${serverID}/rename_server_room/`, {room_id: roomID, name: newName})
+}
+
+export function deleteServerRoom(serverID: number, roomID: number): Promise<AxiosInstance> {
+    return apiClient.post(`${serverURL}/${serverID}/delete_server_room/`, {room_id: roomID})
 }
