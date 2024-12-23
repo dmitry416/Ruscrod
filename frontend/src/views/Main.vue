@@ -21,7 +21,7 @@ import {
   leaveFromServer,
   deleteServer,
   updateServer,
-  joinServer
+  joinServer, getServerMembers
 } from "@api/server.ts";
 import Notifications from "@/components/Notifications.vue";
 import FriendField from "@/components/FriendField.vue";
@@ -119,7 +119,6 @@ async function initAudio(): Promise<void> {
 async function connect(roomID: number): Promise<void> {
   await disconnectVoice();
   cur_room_id.value = roomID;
-  await getMyRoomMembers(roomID);
   await getMessageHistory(roomID, 1);
   await initAudio();
   console.log('Запись началась');
@@ -128,11 +127,9 @@ async function connect(roomID: number): Promise<void> {
 async function disconnectVoice(): Promise<void> {
   isConnectedVoice.value = false;
   mediaRecorder?.stop();
-  // socket?.close();
   mediaStream?.getTracks().forEach((track) => track.stop());
 
   mediaRecorder = null;
-  // socket = null;
   mediaStream = null;
 
   console.log('Запись закончилась');
@@ -187,10 +184,16 @@ async function authDRF(login: string, image_url: string): Promise<void> {
 }
 
 async function getCurServerRooms(serverID: number) {
+  await getCurServerUsers(serverID);
   const response = await getServerRooms(serverID);
   serverRooms.value = response.data;
   currentServer.value = servers.value.find(server => server.id === serverID);
   isOwner.value = currentServer.value?.owner_username === userData.login;
+}
+
+async function getCurServerUsers(serverID: number) {
+  const response = await getServerMembers(serverID);
+  roomUsers.value = response.data;
 }
 
 async function getMessageHistory(roomID: number, page: number) {
@@ -412,7 +415,7 @@ onMounted(async () => {
         <div class="chat-sidebar">
           <cv-content-switcher-content parent-switcher="main" owner-id="content-1">
             <RoomField v-for="room in rooms" :id="room.id" :name="room.name" :connect="connect"
-                       :show-settings="showRoomSettings"/>
+                       :show-settings="showRoomSettings" :room-member="getMyRoomMembers"/>
             <cv-button @click="showRoomModal" class="sidebar-item primary" kind="primary" default="Primary">Создать
               комнату
             </cv-button>
@@ -454,9 +457,11 @@ onMounted(async () => {
             <button @click="sendTextMessage" class="chat__send-button">Отправить</button>
           </div>
         </div>
-        <div v-if="isConnected" class="right-sidebar">
-          <cv-button v-if="isConnectedVoice" @click="disconnectVoice" class="sidebar-item danger" kind="danger">Отключиться</cv-button>
-          <cv-button v-else @click="connectVoice" class="sidebar-item primary" kind="primary">Подключиться</cv-button>
+        <div v-if="roomUsers.length" class="right-sidebar">
+          <div v-if="isConnected">
+            <cv-button v-if="isConnectedVoice" @click="disconnectVoice" class="sidebar-item danger" kind="danger">Отключиться</cv-button>
+            <cv-button v-else @click="connectVoice" class="sidebar-item primary" kind="primary">Подключиться</cv-button>
+          </div>
           <div class="right-sidebar__users">
             <FriendField v-for="user in roomUsers" :friend="user.username" :friend-image="user.image"/>
           </div>

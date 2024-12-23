@@ -256,8 +256,9 @@ class ServerViewSet(viewsets.ModelViewSet):
     @permission_classes([IsAuthenticated])
     def get_server_members(self, request, pk=None):
         server = self.get_object()
-        members = server.members.all()
-        serializer = ServerMemberSerializer(members, many=True)
+        members = server.members.all().values_list('user', flat=True)
+        users = User.objects.filter(id__in=members)
+        serializer = UserSerializer(users, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])

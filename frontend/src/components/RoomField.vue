@@ -5,6 +5,7 @@ const props = defineProps<{
   id: number;
   name: string;
   connect: (id: number) => void;
+  roomMember: (id: number) => void;
   showSettings: (id: number, name: string) => void;
 }>();
 </script>
@@ -12,7 +13,7 @@ const props = defineProps<{
 <template>
   <div class="container">
     <cv-button class="room-button" kind="secondary" default="Primary">
-      <span @click="props.connect(id)" class="room-name">{{ name }}</span>
+      <span @click="props.connect(id);props.roomMember(id);" class="room-name">{{ name }}</span>
       <cv-icon-button @click="props.showSettings(id, name)" label="Настройки" size="field" icon="Settings20"
                       class="icon-right"/>
     </cv-button>
