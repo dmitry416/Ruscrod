@@ -20,7 +20,8 @@ import {
   deleteServerRoom,
   leaveFromServer,
   deleteServer,
-  updateServer
+  updateServer,
+  joinServer
 } from "@api/server.ts";
 import Notifications from "@/components/Notifications.vue";
 import FriendField from "@/components/FriendField.vue";
@@ -61,6 +62,7 @@ const isOwner = ref(false);
 const selectedIndex = ref(-1);
 
 const newFriend = ref("");
+const newServer = ref("");
 const notifications = ref(null);
 const rmodal = ref(null);
 const smodal = ref(null);
@@ -182,12 +184,20 @@ async function getMessageHistory(roomID: number, page: number) {
 
 async function findFriend() {
   if (newFriend.value.length > 0) {
-    if (newFriend.value.length > 0) {
-      const response = await addFriend(newFriend.value);
-      notifications.value.addNotification(response.data);
-      await updateFriends();
-      newFriend.value = "";
-    }
+    const response = await addFriend(newFriend.value);
+    notifications.value.addNotification(response.data);
+    await updateFriends();
+    newFriend.value = "";
+  }
+}
+
+async function findServer() {
+  console.log(newServer.value)
+  if (newServer.value.length > 0) {
+    const response = await joinServer(newServer.value);
+    notifications.value.addNotification(response.data);
+    await updateServers();
+    newServer.value = "";
   }
 }
 
@@ -368,7 +378,8 @@ onMounted(async () => {
             <FriendField v-for="friend in friends" :friend="friend" :delete-friend="deleteMyFriend"/>
           </cv-content-switcher-content>
           <cv-content-switcher-content parent-switcher="main" owner-id="content-2">
-            <cv-search :placeholder="'Найти сервер'" @input="" class="search"></cv-search>
+            <cv-search :placeholder="'Найти сервер'" @input="" @keyup.enter="findServer"
+                       v-model="newServer" class="search"></cv-search>
             <ServerField v-for="server in servers" :server="server" :getServerRooms="getCurServerRooms"/>
             <cv-button @click="showServerModal" class="sidebar-item primary" kind="primary" default="Primary">Создать
               сервер
@@ -378,14 +389,14 @@ onMounted(async () => {
       </div>
       <div class="content">
         <div class="chat-sidebar">
-          <div v-if="selectedIndex === 'content-1'" class="content-1">
+          <cv-content-switcher-content parent-switcher="main" owner-id="content-1">
             <RoomField v-for="room in rooms" :id="room.id" :name="room.name" :connect="connect"
                        :show-settings="showRoomSettings"/>
             <cv-button @click="showRoomModal" class="sidebar-item primary" kind="primary" default="Primary">Создать
               комнату
             </cv-button>
-          </div>
-          <div v-if="selectedIndex === 'content-2'" class="content-2">
+          </cv-content-switcher-content>
+          <cv-content-switcher-content parent-switcher="main" owner-id="content-2">
             <ServerRoomField v-for="room in serverRooms" :id="room.id" :name="room.name"
                              :connect="connect" :isOwner="isOwner"
                              @rename-room="renameMyServerRoom(currentServer.id, room.id, $event)"
@@ -403,7 +414,7 @@ onMounted(async () => {
             >
               Покинуть сервер
             </cv-button>
-          </div>
+          </cv-content-switcher-content>
         </div>
         <div class="chat">
           <div class="chat__messages">

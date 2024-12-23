@@ -56,3 +56,7 @@ export function leaveFromServer(serverID: number): Promise<AxiosInstance> {
 export function deleteServer(serverID: number): Promise<AxiosInstance> {
     return apiClient.delete(`${serverURL}/${serverID}/delete_server/`)
 }
+
+export function joinServer(name: string): Promise<AxiosInstance> {
+    return apiClient.post(`${serverURL}/join_server/`, {name: name})
+}
