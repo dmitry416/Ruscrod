@@ -156,11 +156,15 @@ class ServerViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     @permission_classes([IsAuthenticated])
     def create_server(self, request):
-        name = request.data.get('name')
-        image = request.FILES.get('image')
+        serializer = ServerSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        validated_data = serializer.validated_data
+        name = validated_data.get('name')
+        image = validated_data.get('image')
         server = Server.objects.create(name=name, image=image, owner=request.user)
         ServerMember.objects.create(server=server, user=request.user)
-        serializer = ServerSerializer(server, context={'request': request})
+        serializer = ServerSerializer(server)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'])

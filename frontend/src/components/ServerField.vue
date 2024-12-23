@@ -15,8 +15,10 @@ function handleClick() {
 
 <template>
   <div class="server-field" @click="handleClick">
-    <img :src="server.image" alt="Server Avatar" class="server-avatar" v-if="server.image" />
-    <cv-button class="server-button" kind="secondary" default="Primary">{{ server.name }}</cv-button>
+    <cv-button class="server-button" kind="secondary">
+      <img :src="server.image" alt="Server Avatar" class="server-avatar" v-if="server.image" />
+      <span class="server-name">{{ server.name }}</span>
+    </cv-button>
   </div>
 </template>
 
@@ -28,6 +30,17 @@ function handleClick() {
   width: calc(100% - 20px);
   background-color: #36393f;
   border-radius: 3px;
+  cursor: pointer;
+}
+
+.server-button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  background: 0;
+  border: none;
+  padding: 0 10px;
 }
 
 .server-avatar {
@@ -35,13 +48,13 @@ function handleClick() {
   height: 40px;
   border-radius: 50%;
   margin-right: 10px;
-  margin-left: 10px;
   object-fit: cover;
 }
 
-.server-button {
+.server-name {
   flex-grow: 1;
-  text-align: left;
-  background: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

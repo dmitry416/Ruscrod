@@ -144,7 +144,7 @@ async function getUserInfo(): Promise<object | null> {
 }
 
 async function authDRF(login: string, image_url: string): Promise<void> {
-  const response = await apiClient.post('auth', { login, image_url });
+  const response = await apiClient.post('auth', {login, image_url});
   localStorage.setItem("authToken", response.data.token);
 }
 
@@ -214,7 +214,13 @@ async function createMyRoom(roomName: string) {
 
 async function createMyServer(name: string, image: File | null) {
   console.log(name)
-  await createServer(name, image);
+  try {
+    await createServer(name, image);
+    notifications.value.addNotification("success", "Успешно", "Сервер создан.");
+  } catch (error: any) {
+    let errorMessage = error.response?.data?.name?.[0] || "Произошла ошибка при создании сервера.";
+    notifications.value.addNotification("error", "Ошибка", errorMessage);
+  }
   await updateServers();
 }
 
@@ -287,7 +293,8 @@ onMounted(async () => {
             <cv-search :placeholder="'Найти сервер'" @input="" class="search"></cv-search>
             <ServerField v-for="server in servers" :server="server" :getServerRooms="getCurServerRooms"/>
             <!--            <cv-button v-for="server in servers" @click="getCurServerRooms(server.id)" class="sidebar-item" kind="secondary" default="Primary">{{ server.name }}</cv-button>-->
-            <cv-button @click="showServerModal" class="sidebar-item primary" kind="primary" default="Primary">Создать сервер
+            <cv-button @click="showServerModal" class="sidebar-item primary" kind="primary" default="Primary">Создать
+              сервер
             </cv-button>
           </div>
         </section>
@@ -297,12 +304,15 @@ onMounted(async () => {
           <div class="content-1">
             <RoomField v-for="room in rooms" :id="room.id" :name="room.name" :connect="connect"
                        :show-settings="showRoomSettings"/>
-            <cv-button @click="showRoomModal" class="sidebar-item primary" kind="primary" default="Primary">Создать комнату
+            <cv-button @click="showRoomModal" class="sidebar-item primary" kind="primary" default="Primary">Создать
+              комнату
             </cv-button>
           </div>
           <div class="content-2">
             <ServerRoomField v-for="room in serverRooms" :id="room.id" :name="room.name" :connect="connect"/>
-            <cv-button v-if="isOwner" @click="showServerRoomModal" class="sidebar-item primary" kind="primary">Создать канал</cv-button>
+            <cv-button v-if="isOwner" @click="showServerRoomModal" class="sidebar-item primary" kind="primary">Создать
+              канал
+            </cv-button>
           </div>
         </div>
         <div class="chat">
