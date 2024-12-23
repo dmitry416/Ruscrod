@@ -63,6 +63,7 @@ export default defineComponent({
         dropTargetLabel="Загрузить изображение сервера"
         accept=".jpg,.png"
         kind="button"
+        :clearOnReselect="true"
         :multiple="false"
         @change="handleImageChange"
       />

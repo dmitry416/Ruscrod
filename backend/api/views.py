@@ -181,11 +181,15 @@ class ServerViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     @permission_classes([IsAuthenticated])
     def create_server(self, request):
-        name = request.data.get('name')
-        image = request.FILES.get('image')
+        serializer = ServerSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        validated_data = serializer.validated_data
+        name = validated_data.get('name')
+        image = validated_data.get('image')
         server = Server.objects.create(name=name, image=image, owner=request.user)
         ServerMember.objects.create(server=server, user=request.user)
-        serializer = ServerSerializer(server, context={'request': request})
+        serializer = ServerSerializer(server)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'])
@@ -213,11 +217,36 @@ class ServerViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     @permission_classes([IsAuthenticated])
     def delete_server_room(self, request, pk=None):
-        room = self.get_object()
-        if room.server.owner != request.user:
+        server = self.get_object()
+        if server.owner != request.user:
             return Response({"error": "You are not the owner of this server"}, status=status.HTTP_403_FORBIDDEN)
+        room_id = request.data.get('room_id')
+        if not room_id:
+            return Response({"error": "Room_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            room = Room.objects.get(id=room_id, server_id=server.id)
+        except Room.DoesNotExist:
+            return Response({"error": "Room not found"}, status=status.HTTP_404_NOT_FOUND)
         room.delete()
         return Response({"message": "Room deleted"}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    @permission_classes([IsAuthenticated])
+    def rename_server_room(self, request, pk=None):
+        server = self.get_object()
+        if server.owner != request.user:
+            return Response({"error": "You are not the owner of this server"}, status=status.HTTP_403_FORBIDDEN)
+        new_name = request.data.get('name')
+        room_id = request.data.get('room_id')
+        if not new_name or not room_id:
+            return Response({"error": "Name and room_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            room = Room.objects.get(id=room_id, server_id=server.id)
+        except Room.DoesNotExist:
+            return Response({"error": "Room not found"}, status=status.HTTP_404_NOT_FOUND)
+        room.name = new_name
+        room.save()
+        return Response({"message": "Room renamed"}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['get'])
     @permission_classes([IsAuthenticated])
@@ -225,6 +254,56 @@ class ServerViewSet(viewsets.ModelViewSet):
         server = self.get_object()
         members = server.members.all()
         serializer = ServerMemberSerializer(members, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    @permission_classes([IsAuthenticated])
+    def leave_from_server(self, request, pk=None):
+        server = self.get_object()
+        user = request.user
+
+        if server.owner == user:
+            return Response({"error": "Вы являетесь владельцем сервера и не можете его покинуть"},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            user_server = ServerMember.objects.get(user=user, server=server)
+            user_server.delete()
+            return Response({"success": "Вы успешно покинули сервер"}, status=status.HTTP_200_OK)
+        except ServerMember.DoesNotExist:
+            return Response({"error": "Вы не состоите в этом сервере"}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['delete'])
+    @permission_classes([IsAuthenticated])
+    def delete_server(self, request, pk=None):
+        server = self.get_object()
+        user = request.user
+
+        if server.owner != user:
+            return Response({"error": "Вы не являетесь владельцем сервера и не можете его удалить"},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            server.delete()
+            return Response({"success": "Сервер успешно удален"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['patch'])
+    @permission_classes([IsAuthenticated])
+    def update_server(self, request, pk=None):
+        server = self.get_object()
+        user = request.user
+
+        if server.owner != user:
+            return Response({"error": "Вы не являетесь владельцем сервера и не можете его изменить"},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        serializer = ServerSerializer(server, data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['post'])

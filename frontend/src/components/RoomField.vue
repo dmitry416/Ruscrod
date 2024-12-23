@@ -1,18 +1,21 @@
 <script setup lang="ts">
 import '@carbon/icons-vue'
+
 const props = defineProps<{
   id: number;
   name: string;
   connect: (id: number) => void;
-  showSettings: (id: number, name:string) => void;
+  showSettings: (id: number, name: string) => void;
 }>();
-
 </script>
 
 <template>
   <div class="container">
-    <cv-button @click="props.connect(id)" class="sidebar-item" kind="secondary" default="Primary">{{ name }}</cv-button>
-    <cv-icon-button @click="showSettings(id, name)" label="Настройки" size="field" icon="Settings20" class="icon-right"/>
+    <cv-button class="room-button" kind="secondary" default="Primary">
+      <span @click="props.connect(id)" class="room-name">{{ name }}</span>
+      <cv-icon-button @click="props.showSettings(id, name)" label="Настройки" size="field" icon="Settings20"
+                      class="icon-right"/>
+    </cv-button>
   </div>
 </template>
 
@@ -26,6 +29,16 @@ const props = defineProps<{
   border-radius: 3px;
 }
 
+.room-button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  background: 0;
+  border: none;
+  padding: 0 0 0 15px;
+}
+
 .icon-right {
   margin-left: auto;
   margin-right: 10px;
@@ -33,8 +46,10 @@ const props = defineProps<{
   background-color: #7289da;
 }
 
-.sidebar-item {
-  width: 80%;
-  background: 0;
+.room-name {
+  flex-grow: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

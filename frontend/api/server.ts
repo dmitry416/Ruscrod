@@ -21,25 +21,42 @@ export function createServer(serverName: string, serverImage: File | null): Prom
     if (serverImage) {
         formData.append('image', serverImage);
     }
-    return apiClient.post(`${serverURL}/create_server/`, formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        },
-    });
+    return apiClient.post(`${serverURL}/create_server/`, formData);
 }
 
 export function setServerImage(serverID: number, serverImage: string): Promise<AxiosInstance> {
     return apiClient.post(`${serverURL}/${serverID}/set_server_image/`, {image: serverImage})
 }
 
-export function createServerRoom(serverId: number, serverRoomName: string): Promise<AxiosInstance> {
-    return apiClient.post(`${serverURL}/${serverId}/create_server_room/`, {name: serverRoomName})
+export function updateServer(serverId: number, newName: string, image: File | null) {
+    const formData = new FormData();
+    formData.append('name', newName);
+    if (image) {
+        formData.append('image', image);
+    }
+    return apiClient.patch(`${serverURL}/${serverId}/update_server/`, formData);
 }
 
-export function deleteServerRoom(roomID: number): Promise<AxiosInstance> {
-    return apiClient.post(`${serverURL}/${roomID}/delete_server_room/`)
+export function createServerRoom(serverID: number, serverRoomName: string): Promise<AxiosInstance> {
+    return apiClient.post(`${serverURL}/${serverID}/create_server_room/`, {name: serverRoomName})
 }
 
-export function joinServer(name: string) {
+export function renameServerRoom(serverID: number, roomID: number, newName: string): Promise<AxiosInstance> {
+    return apiClient.post(`${serverURL}/${serverID}/rename_server_room/`, {room_id: roomID, name: newName})
+}
+
+export function deleteServerRoom(serverID: number, roomID: number): Promise<AxiosInstance> {
+    return apiClient.post(`${serverURL}/${serverID}/delete_server_room/`, {room_id: roomID})
+}
+
+export function leaveFromServer(serverID: number): Promise<AxiosInstance> {
+    return apiClient.post(`${serverURL}/${serverID}/leave_from_server/`)
+}
+
+export function deleteServer(serverID: number): Promise<AxiosInstance> {
+    return apiClient.delete(`${serverURL}/${serverID}/delete_server/`)
+}
+
+export function joinServer(name: string): Promise<AxiosInstance> {
     return apiClient.post(`${serverURL}/join_server/`, {name: name})
 }
