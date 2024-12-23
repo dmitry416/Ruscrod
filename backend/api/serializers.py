@@ -31,6 +31,12 @@ class ServerSerializer(serializers.ModelSerializer):
 
         return value
 
+    def update(self, instance, validated_data):
+        if 'image' not in validated_data:
+            validated_data['image'] = instance.image
+
+        return super().update(instance, validated_data)
+
 class FriendshipSerializer(serializers.ModelSerializer):
     user1_username = serializers.CharField(source='user1.username', read_only=True)
     user2_username = serializers.CharField(source='user2.username', read_only=True)

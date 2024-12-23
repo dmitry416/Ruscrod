@@ -2,14 +2,25 @@
 import {onMounted, reactive, ref} from "vue";
 import apiClient from '@/axios';
 import {getFriends, addFriend, deleteFriend} from "@api/user.ts";
-import {createRoom, getRoomMembers, getRoomMessages, getRooms, changeRoomName, addFriendToRoom, leaveFromRoom} from "@api/room.ts";
+import {
+  createRoom,
+  getRoomMembers,
+  getRoomMessages,
+  getRooms,
+  changeRoomName,
+  addFriendToRoom,
+  leaveFromRoom
+} from "@api/room.ts";
 import {
   createServer,
   getServers,
   getServerRooms,
   createServerRoom,
   renameServerRoom,
-  deleteServerRoom
+  deleteServerRoom,
+  leaveFromServer,
+  deleteServer,
+  updateServer
 } from "@api/server.ts";
 import Notifications from "@/components/Notifications.vue";
 import FriendField from "@/components/FriendField.vue";
@@ -193,6 +204,10 @@ async function deleteMyFriend(friend: string) {
   await updateFriends();
 }
 
+function handleContentSwitch(index: number) {
+  selectedIndex.value = index;
+}
+
 function showRoomModal() {
   rmodal.value.showModal();
 }
@@ -215,20 +230,37 @@ async function createMyServer(name: string, image: File | null) {
   console.log(name)
   try {
     await createServer(name, image);
-    notifications.value.addNotification("success", "Успешно", "Сервер создан.");
+    notifications.value.addNotification({success: "Сервер создан."});
   } catch (error: any) {
     let errorMessage = error.response?.data?.name?.[0] || "Произошла ошибка при создании сервера.";
-    notifications.value.addNotification("error", "Ошибка", errorMessage);
+    notifications.value.addNotification({error: errorMessage});
   }
   await updateServers();
 }
 
-async function createMyServerRoom(roomName: string) {
-  if (!currentServer.value) {
-    console.error("Текущий сервер не выбран");
-    return;
+async function updateMyServer(serverId: number, updateData: { name: string, image: File | null }) {
+  console.log(`Обновление сервера ${serverId}`);
+  try {
+    await updateServer(serverId, updateData.name, updateData.image);
+    notifications.value.addNotification({success: "Сервер обновлен."});
+  } catch (error: any) {
+    let errorMessage = error.response?.data?.name?.[0] || "Произошла ошибка при обновлении сервера.";
+    notifications.value.addNotification({error: errorMessage});
   }
+  await updateServers();
+}
 
+async function deleteMyServer(serverId: number) {
+  console.log(`Удаление сервера ${serverId}`);
+  await deleteServer(serverId);
+  notifications.value.addNotification({success: "Сервер удален."});
+  await updateServers();
+  serverRooms.value.length = 0;
+  currentServer.value = null;
+  isOwner.value = false;
+}
+
+async function createChannel(roomName: string) {
   await createServerRoom(currentServer.value.id, roomName);
   await getCurServerRooms(currentServer.value.id);
 }
@@ -276,6 +308,16 @@ async function leaveFromMyRoom(id: number) {
   await updateRooms();
 }
 
+async function leaveServer(serverId: number) {
+  console.log(`Покидание сервера ${serverId}`);
+  await leaveFromServer(serverId);
+  notifications.value.addNotification({success: "Сервер покинут."});
+  await updateServers();
+  serverRooms.value.length = 0;
+  currentServer.value = null;
+  isOwner.value = false;
+}
+
 onMounted(async () => {
   window.history.replaceState({}, document.title, window.location.pathname);
   const data = await getUserInfo();
@@ -294,8 +336,13 @@ onMounted(async () => {
     <Notifications ref="notifications"/>
     <RoomModal ref="rmodal" :on-create="createMyRoom"/>
     <ServerModal ref="smodal" :on-create="createMyServer"/>
-    <ServerRoomModal ref="srmodal" :on-create="createMyServerRoom"/>
-    <RoomSettingsModal ref="roomSettingsModal" :on-leave="leaveFromMyRoom" :on-add-friend="addFriendToMyRoom" :on-change-name="changeMyRoomName"/>
+    <ServerRoomModal ref="srmodal"
+                     @update-server="updateMyServer(currentServer.id, $event)"
+                     @delete-server="deleteMyServer(currentServer.id)"
+                     @create-channel="createChannel($event)"
+    />
+    <RoomSettingsModal ref="roomSettingsModal" :on-leave="leaveFromMyRoom" :on-add-friend="addFriendToMyRoom"
+                       :on-change-name="changeMyRoomName"/>
     <header class="header">
       <div class="header__left">Ruscord</div>
       <div class="header__right">
@@ -306,9 +353,13 @@ onMounted(async () => {
     </header>
     <div class="main">
       <div class="sidebar">
-        <cv-content-switcher aria-label='Choose content' @selected="" id="main">
-          <cv-content-switcher-button owner-id="content-1" :selected="selectedIndex === 0" parent-switcher="main">Друзья</cv-content-switcher-button>
-          <cv-content-switcher-button owner-id="content-2" :selected="selectedIndex === 1" parent-switcher="main">Сервера</cv-content-switcher-button>
+        <cv-content-switcher aria-label='Choose content' @selected="handleContentSwitch" id="main">
+          <cv-content-switcher-button owner-id="content-1" :selected="selectedIndex === 0" parent-switcher="main">
+            Друзья
+          </cv-content-switcher-button>
+          <cv-content-switcher-button owner-id="content-2" :selected="selectedIndex === 1" parent-switcher="main">
+            Сервера
+          </cv-content-switcher-button>
         </cv-content-switcher>
         <section style="margin: 10px 0;">
           <cv-content-switcher-content parent-switcher="main" owner-id="content-1">
@@ -327,21 +378,30 @@ onMounted(async () => {
       </div>
       <div class="content">
         <div class="chat-sidebar">
-          <div class="content-1">
+          <div v-if="selectedIndex === 'content-1'" class="content-1">
             <RoomField v-for="room in rooms" :id="room.id" :name="room.name" :connect="connect"
                        :show-settings="showRoomSettings"/>
             <cv-button @click="showRoomModal" class="sidebar-item primary" kind="primary" default="Primary">Создать
               комнату
             </cv-button>
           </div>
-          <div class="content-2">
+          <div v-if="selectedIndex === 'content-2'" class="content-2">
             <ServerRoomField v-for="room in serverRooms" :id="room.id" :name="room.name"
                              :connect="connect" :isOwner="isOwner"
                              @rename-room="renameMyServerRoom(currentServer.id, room.id, $event)"
                              @delete-room="deleteMyServerRoom(currentServer.id, room.id)"/>
 
-            <cv-button v-if="isOwner" @click="showServerRoomModal" class="sidebar-item primary" kind="primary">
-              Создать канал
+            <cv-button v-if="isOwner && currentServer"
+                       @click="showServerRoomModal" class="sidebar-item primary" kind="primary">
+              Управление сервером
+            </cv-button>
+            <cv-button
+                v-if="!isOwner && currentServer"
+                @click="leaveServer(currentServer.id)"
+                class="sidebar-item danger"
+                kind="danger"
+            >
+              Покинуть сервер
             </cv-button>
           </div>
         </div>
@@ -487,6 +547,13 @@ body {
 .primary {
   border-radius: 3px;
   background-color: #7289da;
+  margin: 10px;
+  width: calc(100% - 20px);
+}
+
+.danger {
+  background-color: #df3d3d;
+  border-radius: 3px;
   margin: 10px;
   width: calc(100% - 20px);
 }

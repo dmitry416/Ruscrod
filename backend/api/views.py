@@ -1,6 +1,7 @@
 from django.db.models import Q
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, permission_classes
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
@@ -254,4 +255,54 @@ class ServerViewSet(viewsets.ModelViewSet):
         server = self.get_object()
         members = server.members.all()
         serializer = ServerMemberSerializer(members, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    @permission_classes([IsAuthenticated])
+    def leave_from_server(self, request, pk=None):
+        server = self.get_object()
+        user = request.user
+
+        if server.owner == user:
+            return Response({"error": "Вы являетесь владельцем сервера и не можете его покинуть"},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            user_server = ServerMember.objects.get(user=user, server=server)
+            user_server.delete()
+            return Response({"success": "Вы успешно покинули сервер"}, status=status.HTTP_200_OK)
+        except ServerMember.DoesNotExist:
+            return Response({"error": "Вы не состоите в этом сервере"}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['delete'])
+    @permission_classes([IsAuthenticated])
+    def delete_server(self, request, pk=None):
+        server = self.get_object()
+        user = request.user
+
+        if server.owner != user:
+            return Response({"error": "Вы не являетесь владельцем сервера и не можете его удалить"},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            server.delete()
+            return Response({"success": "Сервер успешно удален"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['patch'], parser_classes=[MultiPartParser])
+    @permission_classes([IsAuthenticated])
+    def update_server(self, request, pk=None):
+        server = self.get_object()
+        user = request.user
+
+        if server.owner != user:
+            return Response({"error": "Вы не являетесь владельцем сервера и не можете его изменить"},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        serializer = ServerSerializer(server, data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)

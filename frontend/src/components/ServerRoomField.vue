@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import '@carbon/icons-vue'
-import { ref } from 'vue';
+import {ref} from 'vue';
 
 const props = defineProps<{
   id: number;
@@ -43,25 +43,32 @@ function renameRoom() {
 
 <template>
   <div class="server-room-field">
-    <cv-button @click="handleClick" class="room-button" kind="secondary" default="Primary">{{ name }}</cv-button>
-    <cv-icon-button v-if="isOwner" @click="showSettings" label="Настройки" size="field" icon="Settings20" class="icon-right"/>
+    <cv-button class="room-button" kind="secondary" default="Primary">
+      <span @click="handleClick" class="server-room-name">{{ name }}</span>
+      <cv-icon-button v-if="isOwner" @click="showSettings" label="Настройки" size="field" icon="Settings20"
+                      class="icon-right"/>
+    </cv-button>
   </div>
 
-  <cv-modal :visible="isSettingsVisible" @modal-hide-request="hideSettings" @modal-hidden="hideSettings">
+  <cv-modal
+      :visible="isSettingsVisible" @modal-hide-request="hideSettings"
+      @modal-hidden="hideSettings" @primary-click="renameRoom">
+    >
     <template v-slot:title>Настройки канала</template>
     <template v-slot:content>
       <cv-text-input
-        label="Название канала"
-        placeholder="Введите новое название"
-        v-model="localName"
-        class="input-field"
+          label="Название канала"
+          placeholder="Введите новое название"
+          v-model="localName"
+          class="input-field"
+          @keyup.enter="renameRoom"
       />
 
-      <div class="button-group">
-        <cv-button @click="renameRoom" kind="primary" class="save-button">Сохранить изменения</cv-button>
-        <cv-button @click="deleteRoom" kind="danger" class="delete-button">Удалить канал</cv-button>
-      </div>
+      <section style="margin: 10px 0;">
+        <cv-button @click="deleteRoom" kind="danger" class="delete">Удалить канал</cv-button>
+      </section>
     </template>
+    <template v-slot:primary-button>Сохранить изменения</template>
   </cv-modal>
 </template>
 
@@ -77,9 +84,13 @@ function renameRoom() {
 }
 
 .room-button {
-  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  width: 100%;
   text-align: left;
   background: 0;
+  border: none;
+  padding: 0 0 0 15px;
 }
 
 .icon-right {
@@ -89,31 +100,21 @@ function renameRoom() {
   background-color: #7289da;
 }
 
+.server-room-name {
+  flex-grow: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .input-field {
   margin-bottom: 20px;
 }
 
-.button-group {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.save-button, .delete-button {
-  flex-grow: 1;
-  padding: 10px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.save-button {
-  background-color: #7289da;
-  color: white;
-}
-
-.delete-button {
-  background-color: #ff5252;
-  color: white;
+.delete {
+  width: 100%;
+  margin-top: 10px;
+  background-color: #df3d3d;
+  border-radius: 3px;
 }
 </style>
