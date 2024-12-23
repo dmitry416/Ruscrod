@@ -4,7 +4,7 @@ const props = defineProps<{
   id: number;
   name: string;
   connect: (id: number) => void;
-  showSettings: () => void;
+  showSettings: (id: number, name:string) => void;
 }>();
 
 </script>
@@ -12,7 +12,7 @@ const props = defineProps<{
 <template>
   <div class="container">
     <cv-button @click="props.connect(id)" class="sidebar-item" kind="secondary" default="Primary">{{ name }}</cv-button>
-    <cv-icon-button @click="showSettings" label="Настройки" size="field" icon="Settings20" class="icon-right"/>
+    <cv-icon-button @click="showSettings(id, name)" label="Настройки" size="field" icon="Settings20" class="icon-right"/>
   </div>
 </template>
 

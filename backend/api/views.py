@@ -128,9 +128,34 @@ class RoomViewSet(viewsets.ModelViewSet):
         friend_name = request.data.get('friend_name')
         friend = User.objects.filter(username=friend_name).first()
         if not friend:
-            return Response({"error": "Friend not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Друг не найден"}, status=status.HTTP_200_OK)
+        if UserRoom.objects.filter(user=friend, room=room).exists():
+            return Response({"error": "Друг уже находится в этой комнате"}, status=status.HTTP_200_OK)
         UserRoom.objects.create(user=friend, room=room)
-        return Response({"message": "Friend added to room"}, status=status.HTTP_201_CREATED)
+        return Response({"success": "Друг был добавлен"}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    @permission_classes([IsAuthenticated])
+    def leave_from_room(self, request, pk=None):
+        room = self.get_object()
+        user = request.user
+        try:
+            user_room = UserRoom.objects.get(user=user, room=room)
+            user_room.delete()
+            return Response({"success": "Вы успешно покинули комнату"}, status=status.HTTP_200_OK)
+        except UserRoom.DoesNotExist:
+            return Response({"error": "Вы не состоите в этой комнате"}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    @permission_classes([IsAuthenticated])
+    def change_room_name(self, request, pk=None):
+        room = self.get_object()
+        new_name = request.data.get('name')
+        if not new_name:
+            return Response({"error": "Название не может быть пустым"}, status=status.HTTP_200_OK)
+        room.name = new_name
+        room.save()
+        return Response({"success": "Название комнаты успешно изменено"}, status=status.HTTP_200_OK)
 
 
 class ServerViewSet(viewsets.ModelViewSet):
