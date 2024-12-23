@@ -112,8 +112,18 @@ async function disconnect(): Promise<void> {
 }
 
 function handleTextMessage(message: string): void {
+  const messagesContainer = document.getElementsByClassName("chat__messages")[0];
+  const isScrolledToBottom =
+      messagesContainer.clientHeight + messagesContainer.scrollTop > messagesContainer.scrollHeight - 50;
+
   console.log('Получено сообщение:', message);
   messages.value.push(JSON.parse(message));
+
+  console.log(isScrolledToBottom);
+  if (isScrolledToBottom) {
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+
 }
 
 async function sendTextMessage(): Promise<void> {
@@ -383,6 +393,7 @@ body {
   display: flex;
   flex: 1;
   background-color: #2f3136;
+  height: 90vh;
 }
 
 .sidebar {
@@ -396,8 +407,11 @@ body {
 }
 
 .chat-sidebar {
-  width: 300px;
+  width: 350px;
   background-color: #292b2f;
+  overflow-y: auto;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 
 .chat {
@@ -449,6 +463,7 @@ body {
 
 .sidebar-item {
   width: 100%;
+  margin: 10px;
 }
 
 .primary {
