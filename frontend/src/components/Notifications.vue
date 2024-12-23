@@ -14,8 +14,16 @@ export default defineComponent({
     };
   },
   methods: {
-    addNotification(kind:string, title:string, caption:string, autoDestroy=true): void {
-      this.notifications.push({ kind, title, caption });
+    addNotification(caption:string, autoDestroy=true): void {
+      if (caption.error) {
+        this.notifications.push({ kind: "error", title: "Ошибка", caption: caption.error });
+      }
+      else if (caption.warning) {
+        this.notifications.push({ kind: "warning", title: "Внимание", caption: caption.warning });
+      }
+      else {
+        this.notifications.push({ kind: "success", title: "Успешно", caption: caption.success });
+      }
       if (autoDestroy) {
         setTimeout(() => this.removeNotification(this.notifications.length - 1), 5000);
       }

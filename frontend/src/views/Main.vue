@@ -2,7 +2,7 @@
 import {onMounted, reactive, ref} from "vue";
 import apiClient from '@/axios';
 import {getFriends, addFriend, deleteFriend} from "@api/user.ts";
-import {createRoom, getRoomMembers, getRoomMessages, getRooms} from "@api/room.ts";
+import {createRoom, getRoomMembers, getRoomMessages, getRooms, changeRoomName, addFriendToRoom, leaveFromRoom} from "@api/room.ts";
 import {
   createServer,
   getServers,
@@ -19,6 +19,7 @@ import ServerModal from "@/components/ServerModal.vue";
 import ServerField from "@/components/ServerField.vue";
 import ServerRoomField from "@/components/ServerRoomField.vue";
 import ServerRoomModal from "@/components/ServerRoomModal.vue";
+import RoomSettingsModal from "@/components/RoomSettingsModal.vue";
 
 const CHUNK = 500;
 
@@ -53,6 +54,7 @@ const notifications = ref(null);
 const rmodal = ref(null);
 const smodal = ref(null);
 const srmodal = ref(null);
+const roomSettingsModal = ref(null);
 
 async function initAudio(): Promise<void> {
   audioContext = new AudioContext();
@@ -171,14 +173,8 @@ async function findFriend() {
   if (newFriend.value.length > 0) {
     if (newFriend.value.length > 0) {
       const response = await addFriend(newFriend.value);
-      if (response.data.error) {
-        notifications.value.addNotification("error", "Ошибка", response.data.error);
-      } else if (response.data.warning) {
-        notifications.value.addNotification("warning", "Внимание", response.data.warning);
-      } else if (response.data.success) {
-        notifications.value.addNotification("success", "Успешно", response.data.success);
-        await updateFriends();
-      }
+      notifications.value.addNotification(response.data);
+      await updateFriends();
       newFriend.value = "";
     }
   }
@@ -193,11 +189,7 @@ async function updateFriends() {
 
 async function deleteMyFriend(friend: string) {
   const response = await deleteFriend(friend);
-  if (response.data.error) {
-    notifications.value.addNotification("error", "Ошибка", response.data.error);
-  } else if (response.data.success) {
-    notifications.value.addNotification("success", "Успешно", response.data.success);
-  }
+  notifications.value.addNotification(response.data);
   await updateFriends();
 }
 
@@ -263,8 +255,25 @@ async function updateServers() {
   servers.value = response.data;
 }
 
-function showRoomSettings() {
-  console.log("Room settings");
+function showRoomSettings(id: number, name: string) {
+  roomSettingsModal.value.showModal(id, name);
+}
+
+async function changeMyRoomName(id: number, name: string) {
+  const response = await changeRoomName(id, name);
+  notifications.value.addNotification(response.data);
+  await updateRooms();
+}
+
+async function addFriendToMyRoom(id: number, friendName: string) {
+  const response = await addFriendToRoom(id, friendName);
+  notifications.value.addNotification(response.data);
+}
+
+async function leaveFromMyRoom(id: number) {
+  const response = await leaveFromRoom(id);
+  notifications.value.addNotification(response.data);
+  await updateRooms();
 }
 
 onMounted(async () => {
@@ -286,6 +295,7 @@ onMounted(async () => {
     <RoomModal ref="rmodal" :on-create="createMyRoom"/>
     <ServerModal ref="smodal" :on-create="createMyServer"/>
     <ServerRoomModal ref="srmodal" :on-create="createMyServerRoom"/>
+    <RoomSettingsModal ref="roomSettingsModal" :on-leave="leaveFromMyRoom" :on-add-friend="addFriendToMyRoom" :on-change-name="changeMyRoomName"/>
     <header class="header">
       <div class="header__left">Ruscord</div>
       <div class="header__right">
@@ -296,26 +306,23 @@ onMounted(async () => {
     </header>
     <div class="main">
       <div class="sidebar">
-        <cv-content-switcher aria-label='Choose content' @selected="">
-          <cv-content-switcher-button content-selector=".content-1" :selected="selectedIndex === 0">Друзья
-          </cv-content-switcher-button>
-          <cv-content-switcher-button content-selector=".content-2" :selected="selectedIndex === 1">Сервера
-          </cv-content-switcher-button>
+        <cv-content-switcher aria-label='Choose content' @selected="" id="main">
+          <cv-content-switcher-button owner-id="content-1" :selected="selectedIndex === 0" parent-switcher="main">Друзья</cv-content-switcher-button>
+          <cv-content-switcher-button owner-id="content-2" :selected="selectedIndex === 1" parent-switcher="main">Сервера</cv-content-switcher-button>
         </cv-content-switcher>
         <section style="margin: 10px 0;">
-          <div class="content-1">
+          <cv-content-switcher-content parent-switcher="main" owner-id="content-1">
             <cv-search :placeholder="'Найти друзей'" @input="" @keyup.enter="findFriend"
                        v-model="newFriend" class="search"></cv-search>
             <FriendField v-for="friend in friends" :friend="friend" :delete-friend="deleteMyFriend"/>
-          </div>
-          <div class="content-2">
+          </cv-content-switcher-content>
+          <cv-content-switcher-content parent-switcher="main" owner-id="content-2">
             <cv-search :placeholder="'Найти сервер'" @input="" class="search"></cv-search>
             <ServerField v-for="server in servers" :server="server" :getServerRooms="getCurServerRooms"/>
-            <!--            <cv-button v-for="server in servers" @click="getCurServerRooms(server.id)" class="sidebar-item" kind="secondary" default="Primary">{{ server.name }}</cv-button>-->
             <cv-button @click="showServerModal" class="sidebar-item primary" kind="primary" default="Primary">Создать
               сервер
             </cv-button>
-          </div>
+          </cv-content-switcher-content>
         </section>
       </div>
       <div class="content">
