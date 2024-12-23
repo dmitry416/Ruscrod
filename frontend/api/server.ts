@@ -39,3 +39,7 @@ export function createServerRoom(serverId: number, serverRoomName: string): Prom
 export function deleteServerRoom(roomID: number): Promise<AxiosInstance> {
     return apiClient.post(`${serverURL}/${roomID}/delete_server_room/`)
 }
+
+export function joinServer(name: string) {
+    return apiClient.post(`${serverURL}/join_server/`, {name: name})
+}

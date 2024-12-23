@@ -144,7 +144,7 @@ class RoomViewSet(viewsets.ModelViewSet):
             user_room.delete()
             return Response({"success": "Вы успешно покинули комнату"}, status=status.HTTP_200_OK)
         except UserRoom.DoesNotExist:
-            return Response({"error": "Вы не состоите в этой комнате"}, status=status.HTTP_200_OK)
+            return Response({"warning": "Вы не состоите в этой комнате"}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
     @permission_classes([IsAuthenticated])
@@ -226,3 +226,17 @@ class ServerViewSet(viewsets.ModelViewSet):
         members = server.members.all()
         serializer = ServerMemberSerializer(members, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'])
+    @permission_classes([IsAuthenticated])
+    def join_server(self, request):
+        server_name = request.data.get('name')
+        if not server_name:
+            return Response({"error": "Имя сервера не указано"}, status=status.HTTP_200_OK)
+        server = Server.objects.filter(name=server_name).first()
+        if not server:
+            return Response({"error": "Сервер с таким именем не найден"}, status=status.HTTP_200_OK)
+        if ServerMember.objects.filter(server=server, user=request.user).exists():
+            return Response({"warning": "Вы уже являетесь участником этого сервера"}, status=status.HTTP_200_OK)
+        ServerMember.objects.create(server=server, user=request.user)
+        return Response({"success": "Вы успешно присоединились к серверу"}, status=status.HTTP_200_OK)
