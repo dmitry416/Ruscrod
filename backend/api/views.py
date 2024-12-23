@@ -38,8 +38,11 @@ class UserViewSet(viewsets.ModelViewSet):
     @permission_classes([IsAuthenticated])
     def get_friends(self, request):
         user = request.user
-        friends = user.friendships1.filter(is_friend=True) | user.friendships2.filter(is_friend=True)
-        serializer = FriendshipSerializer(friends, many=True)
+        friends = User.objects.filter(
+            Q(friendships1__user2=user, friendships1__is_friend=True) |
+            Q(friendships2__user1=user, friendships2__is_friend=True)
+        ).distinct()
+        serializer = UserSerializer(friends, many=True)
         return Response(serializer.data)
 
 
@@ -109,8 +112,9 @@ class RoomViewSet(viewsets.ModelViewSet):
     @permission_classes([IsAuthenticated])
     def get_room_members(self, request, pk=None):
         room = self.get_object()
-        members = room.room_users.all()
-        serializer = UserSerializer(members, many=True)
+        members = room.room_users.all().values_list('user', flat=True)
+        users = User.objects.filter(id__in=members)
+        serializer = UserSerializer(users, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['post'])

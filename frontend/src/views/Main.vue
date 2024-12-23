@@ -47,6 +47,7 @@ const userData = reactive({
 });
 
 const isConnected = ref(false);
+const isConnectedVoice = ref(false);
 const textMessage = ref("");
 
 const cur_room_id = ref(1);
@@ -56,6 +57,7 @@ const friends = ref([]);
 const servers = ref([]);
 const rooms = ref([]);
 const serverRooms = ref([]);
+const roomUsers = ref([]);
 
 const currentServer = ref(null);
 const isOwner = ref(false);
@@ -68,8 +70,10 @@ const rmodal = ref(null);
 const smodal = ref(null);
 const srmodal = ref(null);
 const roomSettingsModal = ref(null);
+const messagesContainer = ref(null);
 
-async function initAudio(): Promise<void> {
+async function connectVoice() {
+  isConnectedVoice.value = true;
   audioContext = new AudioContext();
   mediaStream = await navigator.mediaDevices.getUserMedia({audio: true});
   mediaRecorder = new MediaRecorder(mediaStream);
@@ -87,14 +91,18 @@ async function initAudio(): Promise<void> {
       );
     }
   };
+  mediaRecorder?.start(CHUNK);
+}
 
+async function initAudio(): Promise<void> {
+  isConnected.value = true;
   socket = new WebSocket(`ws://${import.meta.env.VITE_API_URL}/ws/${import.meta.env.VITE_ROOM_URL}/${cur_room_id.value}/`);
   socket.binaryType = 'arraybuffer';
 
   socket.onmessage = (event: MessageEvent) => {
     if (typeof event.data === 'string') {
       handleTextMessage(event.data);
-    } else if (event.data instanceof ArrayBuffer) {
+    } else if (isConnectedVoice && event.data instanceof ArrayBuffer) {
       const arrayBuffer = event.data as ArrayBuffer;
       audioContext?.decodeAudioData(arrayBuffer, (buffer: AudioBuffer) => {
         const source = audioContext?.createBufferSource();
@@ -109,42 +117,40 @@ async function initAudio(): Promise<void> {
 }
 
 async function connect(roomID: number): Promise<void> {
+  await disconnectVoice();
   cur_room_id.value = roomID;
-  isConnected.value = true;
+  await getMyRoomMembers(roomID);
   await getMessageHistory(roomID, 1);
   await initAudio();
-  mediaRecorder?.start(CHUNK);
   console.log('Запись началась');
 }
 
-async function disconnect(): Promise<void> {
-  isConnected.value = false;
-
+async function disconnectVoice(): Promise<void> {
+  isConnectedVoice.value = false;
   mediaRecorder?.stop();
-  socket?.close();
+  // socket?.close();
   mediaStream?.getTracks().forEach((track) => track.stop());
 
   mediaRecorder = null;
-  socket = null;
+  // socket = null;
   mediaStream = null;
 
   console.log('Запись закончилась');
 }
 
 function handleTextMessage(message: string): void {
-  const messagesContainer = document.getElementsByClassName("chat__messages")[0];
-  const isScrolledToBottom =
-      messagesContainer.clientHeight + messagesContainer.scrollTop > messagesContainer.scrollHeight - 50;
-
   console.log('Получено сообщение:', message);
   messages.value.push(JSON.parse(message));
-
-  console.log(isScrolledToBottom);
-  if (isScrolledToBottom) {
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-  }
-
+  scrollToBottom();
 }
+
+const scrollToBottom = () => {
+  setTimeout(() => {
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+    }
+  }, 0);
+};
 
 async function sendTextMessage(): Promise<void> {
   if (socket && socket.readyState === WebSocket.OPEN) {
@@ -190,6 +196,7 @@ async function getCurServerRooms(serverID: number) {
 async function getMessageHistory(roomID: number, page: number) {
   const response = await getRoomMessages(roomID, page);
   messages.value = response.data.reverse();
+  scrollToBottom();
 }
 
 async function findFriend() {
@@ -202,7 +209,6 @@ async function findFriend() {
 }
 
 async function findServer() {
-  console.log(newServer.value)
   if (newServer.value.length > 0) {
     const response = await joinServer(newServer.value);
     notifications.value.addNotification(response.data);
@@ -214,8 +220,7 @@ async function findServer() {
 async function updateFriends() {
   friends.value = [];
   const response = await getFriends();
-  friends.value = response.data.map((friend: any) =>
-      friend.user1_username === userData.login ? friend.user2_username : friend.user1_username);
+  friends.value = response.data;
 }
 
 async function deleteMyFriend(friend: string) {
@@ -338,6 +343,12 @@ async function leaveServer(serverId: number) {
   isOwner.value = false;
 }
 
+async function getMyRoomMembers(roomId: number) {
+  const response = await getRoomMembers(roomId);
+  console.log(response.data);
+  roomUsers.value = response.data;
+}
+
 onMounted(async () => {
   window.history.replaceState({}, document.title, window.location.pathname);
   const data = await getUserInfo();
@@ -385,7 +396,7 @@ onMounted(async () => {
           <cv-content-switcher-content parent-switcher="main" owner-id="content-1">
             <cv-search :placeholder="'Найти друзей'" @input="" @keyup.enter="findFriend"
                        v-model="newFriend" class="search"></cv-search>
-            <FriendField v-for="friend in friends" :friend="friend" :delete-friend="deleteMyFriend"/>
+            <FriendField v-for="friend in friends" :friend="friend.username" :friend-image="friend.image" :delete-friend="deleteMyFriend"/>
           </cv-content-switcher-content>
           <cv-content-switcher-content parent-switcher="main" owner-id="content-2">
             <cv-search :placeholder="'Найти сервер'" @input="" @keyup.enter="findServer"
@@ -427,7 +438,7 @@ onMounted(async () => {
           </cv-content-switcher-content>
         </div>
         <div class="chat">
-          <div class="chat__messages">
+          <div class="chat__messages" ref="messagesContainer">
             <div v-for="message in messages" class="chat__message">
               <strong>{{ message.username }}:</strong> {{ message.message }}
             </div>
@@ -441,6 +452,13 @@ onMounted(async () => {
                 class="chat__input-field"
             />
             <button @click="sendTextMessage" class="chat__send-button">Отправить</button>
+          </div>
+        </div>
+        <div v-if="isConnected" class="right-sidebar">
+          <cv-button v-if="isConnectedVoice" @click="disconnectVoice" class="sidebar-item danger" kind="danger">Отключиться</cv-button>
+          <cv-button v-else @click="connectVoice" class="sidebar-item primary" kind="primary">Подключиться</cv-button>
+          <div class="right-sidebar__users">
+            <FriendField v-for="user in roomUsers" :friend="user.username" :friend-image="user.image"/>
           </div>
         </div>
       </div>
@@ -501,7 +519,7 @@ body {
 }
 
 .sidebar {
-  width: 300px;
+  width: 280px;
   background-color: #202225;
 }
 
@@ -511,9 +529,10 @@ body {
 }
 
 .chat-sidebar {
-  width: 350px;
+  width: 280px;
   background-color: #292b2f;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-top: 10px;
   padding-bottom: 10px;
 }
@@ -582,5 +601,37 @@ body {
   border-radius: 3px;
   margin: 10px;
   width: calc(100% - 20px);
+}
+.right-sidebar {
+  width: 270px;
+  background-color: #2c2f33;
+  color: white;
+  padding: 10px;
+}
+
+.right-sidebar__connect-button {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.right-sidebar__users {
+  display: flex;
+  flex-direction: column;
+}
+
+::-webkit-scrollbar{
+  width: 10px;
+}
+::-webkit-scrollbar-track{
+  background: #2c2f33;
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb{
+  background: #7289da;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+::-webkit-scrollbar-thumb:hover{
+  background: #677bc4;
 }
 </style>

@@ -7,7 +7,7 @@ from .models import User, Room, Server, Friendship, UserRoom, ServerMember, Mess
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'name', 'image']
+        fields = ['id', 'username', 'image']
 
 class RoomSerializer(serializers.ModelSerializer):
     class Meta:
