@@ -49,10 +49,11 @@ export default {
   align-items: center;
   padding: 10px 20px;
   background-color: #202225;
-  font-size: 20px;
+  font-size: 28px;
   width: 100%;
   color: white;
   font-weight: bold;
+  height: 50px;
 }
 
 
