@@ -45,8 +45,9 @@ function renameRoom() {
   <div class="server-room-field">
     <cv-button class="room-button" kind="secondary" default="Primary">
       <span @click="handleClick" class="server-room-name">{{ name }}</span>
-      <cv-icon-button v-if="isOwner" @click="showSettings" label="Настройки" size="field" icon="Settings20"
-                      class="icon-right"/>
+      <img @click="showSettings" src="/settings.svg" class="icon-right"/>
+<!--      <cv-icon-button v-if="isOwner" @click="showSettings" label="Настройки" size="field" icon="Settings20"-->
+<!--                      class="icon-right"/>-->
     </cv-button>
   </div>
 
@@ -97,7 +98,8 @@ function renameRoom() {
   margin-left: auto;
   margin-right: 10px;
   border-radius: 100%;
-  background-color: #7289da;
+  width: 40px;
+  padding: 5px;
 }
 
 .server-room-name {

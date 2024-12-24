@@ -96,6 +96,8 @@ async function connectVoice() {
 
 async function initAudio(): Promise<void> {
   isConnected.value = true;
+  socket?.close();
+  socket = null;
   socket = new WebSocket(`ws://${import.meta.env.VITE_API_URL}/ws/${import.meta.env.VITE_ROOM_URL}/${cur_room_id.value}/`);
   socket.binaryType = 'arraybuffer';
 

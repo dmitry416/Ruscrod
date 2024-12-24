@@ -14,8 +14,7 @@ const props = defineProps<{
   <div class="container">
     <cv-button class="room-button" kind="secondary" default="Primary">
       <span @click="props.connect(id);props.roomMember(id);" class="room-name">{{ name }}</span>
-      <cv-icon-button @click="props.showSettings(id, name)" label="Настройки" size="field" icon="Settings20"
-                      class="icon-right"/>
+      <img @click="props.showSettings(id, name)" src="/settings.svg" class="icon-right"/>
     </cv-button>
   </div>
 </template>
@@ -44,7 +43,8 @@ const props = defineProps<{
   margin-left: auto;
   margin-right: 10px;
   border-radius: 100%;
-  background-color: #7289da;
+  width: 40px;
+  padding: 5px;
 }
 
 .room-name {
