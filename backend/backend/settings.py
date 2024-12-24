@@ -8,7 +8,7 @@ SECRET_KEY = config.DJANGO_SECRET
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'channels',
     'api',
+    'django.contrib.postgres',
 ]
 
 MIDDLEWARE = [
@@ -45,6 +46,9 @@ CORS_ALLOW_METHODS = '*'
 # CSRF_TRUSTED_ORIGINS = [
 #     'http://localhost:5173',
 # ]
+
+CELERY_BROKER_URL = f'redis://{config.CHANNELS_REDIS_HOST}:{config.CHANNELS_REDIS_PORT}/0'
+CELERY_RESULT_BACKEND = f'redis://{config.CHANNELS_REDIS_HOST}:{config.CHANNELS_REDIS_PORT}/0'
 
 TEMPLATES = [
     {

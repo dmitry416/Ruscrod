@@ -1,4 +1,9 @@
 import re
+import os
+
+from django.core.files.uploadedfile import InMemoryUploadedFile
+
+from .tasks import resize_image
 
 from rest_framework import serializers
 
@@ -32,10 +37,24 @@ class ServerSerializer(serializers.ModelSerializer):
         return value
 
     def update(self, instance, validated_data):
-        if 'image' not in validated_data:
-            validated_data['image'] = instance.image
+        if 'image' in validated_data:
+            new_image = validated_data.get('image')
+            if isinstance(new_image, InMemoryUploadedFile):
+                instance.image.save(new_image.name, new_image)
+                instance.image.close()
 
-        return super().update(instance, validated_data)
+        instance = super().update(instance, validated_data)
+
+        if instance.image:
+            image_path = instance.image.path
+            output_path = os.path.join(os.path.dirname(image_path), f"resized_{os.path.basename(image_path)}")
+
+            resize_image.delay(image_path, output_path)
+
+            instance.image.name = os.path.join("server_images", os.path.basename(output_path))
+            instance.save(update_fields=['image'])
+
+        return instance
 
 class FriendshipSerializer(serializers.ModelSerializer):
     user1_username = serializers.CharField(source='user1.username', read_only=True)

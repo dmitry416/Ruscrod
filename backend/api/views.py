@@ -6,9 +6,11 @@ from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
 
 from .models import User, Room, Server, Friendship, UserRoom, ServerMember
-from .serializers import UserSerializer, RoomSerializer, ServerSerializer, FriendshipSerializer, \
-    ServerMemberSerializer, MessageSerializer
+from .serializers import UserSerializer, RoomSerializer, ServerSerializer, MessageSerializer
 from rest_framework.permissions import IsAuthenticated
+import uuid
+from .tasks import resize_image
+import os
 
 
 class YandexAuthView(APIView):
@@ -190,8 +192,15 @@ class ServerViewSet(viewsets.ModelViewSet):
         validated_data = serializer.validated_data
         name = validated_data.get('name')
         image = validated_data.get('image')
+
         server = Server.objects.create(name=name, image=image, owner=request.user)
         ServerMember.objects.create(server=server, user=request.user)
+        if server.image:
+            image_path = server.image.path
+            output_path = os.path.join(os.path.dirname(image_path), f"resized_{os.path.basename(image_path)}")
+            resize_image.delay(image_path, output_path)
+            server.image.name = os.path.join("server_images", os.path.basename(output_path))
+            server.save(update_fields=['image'])
         serializer = ServerSerializer(server)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -201,9 +210,6 @@ class ServerViewSet(viewsets.ModelViewSet):
         server = self.get_object()
         if server.owner != request.user:
             return Response({"error": "You are not the owner of this server"}, status=status.HTTP_403_FORBIDDEN)
-        image = request.data.get('image')
-        server.image = image
-        server.save()
         serializer = ServerSerializer(server, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
