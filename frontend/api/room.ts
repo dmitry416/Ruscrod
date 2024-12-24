@@ -7,8 +7,8 @@ export function getRooms(): Promise<AxiosInstance> {
     return apiClient.get(`${roomURL}/get_rooms/`)
 }
 
-export function getRoomMessages(roomID: number, page: number): Promise<AxiosInstance> {
-    return apiClient.get(`${roomURL}/${roomID}/get_room_messages/?page=${page}`)
+export function getRoomMessages(roomID: number): Promise<AxiosInstance> {
+    return apiClient.get(`${roomURL}/${roomID}/get_room_messages/`)
 }
 
 export function getRoomMembers(roomID: number): Promise<AxiosInstance> {

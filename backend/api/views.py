@@ -103,8 +103,7 @@ class RoomViewSet(viewsets.ModelViewSet):
     @permission_classes([IsAuthenticated])
     def get_room_messages(self, request, pk=None):
         room = self.get_object()
-        page = int(request.query_params.get('page', 1))
-        messages = room.messages.order_by('-timestamp')[(page - 1) * 50:page * 50]
+        messages = room.messages.order_by('-timestamp')
         serializer = MessageSerializer(messages, many=True)
         return Response(serializer.data)
 

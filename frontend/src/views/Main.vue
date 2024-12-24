@@ -119,7 +119,7 @@ async function initAudio(): Promise<void> {
 async function connect(roomID: number): Promise<void> {
   await disconnectVoice();
   cur_room_id.value = roomID;
-  await getMessageHistory(roomID, 1);
+  await getMessageHistory(roomID);
   await initAudio();
   console.log('Запись началась');
 }
@@ -196,8 +196,8 @@ async function getCurServerUsers(serverID: number) {
   roomUsers.value = response.data;
 }
 
-async function getMessageHistory(roomID: number, page: number) {
-  const response = await getRoomMessages(roomID, page);
+async function getMessageHistory(roomID: number) {
+  const response = await getRoomMessages(roomID);
   messages.value = response.data.reverse();
   scrollToBottom();
 }
