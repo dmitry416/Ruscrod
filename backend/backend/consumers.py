@@ -18,7 +18,8 @@ class RoomConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data=None, bytes_data=None):
         if bytes_data:
             await self.channel_layer.group_send(self.room_name, {"type": "audio_message",
-                                                                 "data": bytes_data})
+                                                                 "data": bytes_data,
+                                                                 "exclude_channel": self.channel_name})
         else:
             text_data_json = json.loads(text_data)
             message_data = text_data_json.get("data")
@@ -38,8 +39,9 @@ class RoomConsumer(AsyncWebsocketConsumer):
                                                                  "timestamp": message.timestamp.isoformat()})
 
     async def audio_message(self, event):
-        data = event["data"]
-        await self.send(bytes_data=data)
+        if event.get("exclude_channel") != self.channel_name:
+            data = event["data"]
+            await self.send(bytes_data=data)
 
     async def text_message(self, event):
         message = event["message"]
