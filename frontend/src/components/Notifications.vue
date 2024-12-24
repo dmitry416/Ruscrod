@@ -7,6 +7,12 @@ interface Notification {
   caption: string;
 }
 
+interface Caption {
+  error: string;
+  warning: string;
+  success: string;
+}
+
 export default defineComponent({
   data() {
     return {
@@ -14,7 +20,7 @@ export default defineComponent({
     };
   },
   methods: {
-    addNotification(caption:string, autoDestroy=true): void {
+    addNotification(caption:Caption, autoDestroy=true): void {
       if (caption.error) {
         this.notifications.push({ kind: "error", title: "Ошибка", caption: caption.error });
       }
