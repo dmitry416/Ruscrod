@@ -395,7 +395,7 @@ onMounted(async () => {
             Сервера
           </cv-content-switcher-button>
         </cv-content-switcher>
-        <section style="margin: 10px 0;">
+        <section style="margin: 10px 0; max-height: calc(100vh - 120px); overflow-y: auto;">
           <cv-content-switcher-content parent-switcher="main" owner-id="content-1">
             <cv-search :placeholder="'Найти друзей'" @input="" @keyup.enter="findFriend"
                        v-model="newFriend" class="search"></cv-search>
