@@ -45,7 +45,7 @@ function renameRoom() {
   <div class="server-room-field">
     <cv-button class="room-button" kind="secondary" default="Primary">
       <span @click="handleClick" class="server-room-name">{{ name }}</span>
-      <img @click="showSettings" src="/settings.svg" class="icon-right"/>
+      <img v-if="isOwner" @click="showSettings" src="/settings.svg" class="icon-right"/>
 <!--      <cv-icon-button v-if="isOwner" @click="showSettings" label="Настройки" size="field" icon="Settings20"-->
 <!--                      class="icon-right"/>-->
     </cv-button>

@@ -61,7 +61,8 @@ class ServerMemberSerializer(serializers.ModelSerializer):
 
 class MessageSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
+    image = serializers.CharField(source='user.image', read_only=True)
 
     class Meta:
         model = Message
-        fields = ['id', 'room', 'username', 'message', 'timestamp']
+        fields = ['id', 'room', 'username', 'image', 'message', 'timestamp']

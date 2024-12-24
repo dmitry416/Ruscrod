@@ -24,6 +24,7 @@ class RoomConsumer(AsyncWebsocketConsumer):
             message_data = text_data_json.get("data")
             username = text_data_json.get("username")
             user = await sync_to_async(User.objects.get)(username=username)
+            user_image = user.image
             message = await sync_to_async(Message.objects.create)(
                 room=self.room,
                 user=user,
@@ -33,6 +34,7 @@ class RoomConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_send(self.room_name, {"type": "text_message",
                                                                  "message": message_data,
                                                                  "username": username,
+                                                                 "image": user_image,
                                                                  "timestamp": message.timestamp.isoformat()})
 
     async def audio_message(self, event):
@@ -42,11 +44,13 @@ class RoomConsumer(AsyncWebsocketConsumer):
     async def text_message(self, event):
         message = event["message"]
         username = event["username"]
+        image = event["image"]
         timestamp = event["timestamp"]
 
         await self.send(text_data=json.dumps({
             "type": "text_message",
             "message": message,
             "username": username,
+            "image": image,
             "timestamp": timestamp
         }))

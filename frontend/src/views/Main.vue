@@ -321,6 +321,15 @@ function showRoomSettings(id: number, name: string) {
   roomSettingsModal.value.showModal(id, name);
 }
 
+function formatTime(timestamp: string): string {
+  const date = new Date(timestamp);
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  const time = date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+  return `${day}.${month}.${year} ${time}`;
+}
+
 async function changeMyRoomName(id: number, name: string) {
   const response = await changeRoomName(id, name);
   notifications.value.addNotification(response.data);
@@ -401,7 +410,8 @@ onMounted(async () => {
           <cv-content-switcher-content parent-switcher="main" owner-id="content-1">
             <cv-search :placeholder="'Найти друзей'" @input="" @keyup.enter="findFriend"
                        v-model="newFriend" class="search"></cv-search>
-            <FriendField v-for="friend in friends" :friend="friend.username" :friend-image="friend.image" :delete-friend="deleteMyFriend"/>
+            <FriendField v-for="friend in friends" :friend="friend.username" :friend-image="friend.image"
+                         :delete-friend="deleteMyFriend"/>
           </cv-content-switcher-content>
           <cv-content-switcher-content parent-switcher="main" owner-id="content-2">
             <cv-search :placeholder="'Найти сервер'" @input="" @keyup.enter="findServer"
@@ -444,8 +454,19 @@ onMounted(async () => {
         </div>
         <div class="chat">
           <div class="chat__messages" ref="messagesContainer">
-            <div v-for="message in messages" class="chat__message">
-              <strong>{{ message.username }}:</strong> {{ message.message }}
+            <div v-for="message in messages" :key="message.id" class="chat__message">
+              <img
+                  :src="`https://avatars.yandex.net/get-yapic/${message.image}/islands-retina-middle`"
+                  alt="Avatar"
+                  class="chat__message-avatar"
+              />
+              <div class="chat__message-content">
+                <div class="chat__message-header">
+                  <strong>{{ message.username }}</strong>
+                  <span class="chat__message-time">{{ formatTime(message.timestamp) }}</span>
+                </div>
+                <div class="chat__message-text">{{ message.message }}</div>
+              </div>
             </div>
           </div>
           <div class="chat__input">
@@ -461,7 +482,9 @@ onMounted(async () => {
         </div>
         <div v-if="roomUsers.length" class="right-sidebar">
           <div v-if="isConnected">
-            <cv-button v-if="isConnectedVoice" @click="disconnectVoice" class="sidebar-item danger" kind="danger">Отключиться</cv-button>
+            <cv-button v-if="isConnectedVoice" @click="disconnectVoice" class="sidebar-item danger" kind="danger">
+              Отключиться
+            </cv-button>
             <cv-button v-else @click="connectVoice" class="sidebar-item primary" kind="primary">Подключиться</cv-button>
           </div>
           <div class="right-sidebar__users">
@@ -560,7 +583,32 @@ body {
 }
 
 .chat__message {
-  margin-bottom: 10px;
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.chat__message-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.chat__message-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.chat__message-text {
+  margin-top: 4px;
+}
+
+.chat__message-time {
+  color: gray;
+  font-size: 10px;
+  margin-left: 10px;
 }
 
 .chat__input {
@@ -609,6 +657,7 @@ body {
   margin: 10px;
   width: calc(100% - 20px);
 }
+
 .right-sidebar {
   width: 270px;
   background-color: #2c2f33;
@@ -616,29 +665,27 @@ body {
   padding: 10px;
 }
 
-.right-sidebar__connect-button {
-  width: 100%;
-  margin-bottom: 10px;
-}
-
 .right-sidebar__users {
   display: flex;
   flex-direction: column;
 }
 
-::-webkit-scrollbar{
+::-webkit-scrollbar {
   width: 10px;
 }
-::-webkit-scrollbar-track{
+
+::-webkit-scrollbar-track {
   background: #2c2f33;
   border-radius: 5px;
 }
-::-webkit-scrollbar-thumb{
+
+::-webkit-scrollbar-thumb {
   background: #7289da;
   border-radius: 12px;
   transition: all 0.3s ease;
 }
-::-webkit-scrollbar-thumb:hover{
+
+::-webkit-scrollbar-thumb:hover {
   background: #677bc4;
 }
 </style>
