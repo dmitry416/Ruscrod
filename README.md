@@ -3,6 +3,9 @@
 
 Ruscord implements the basic functionality of Discord, such as voice communication, text communication, the ability to create rooms, servers and add to friends.
 
+![image](https://github.com/user-attachments/assets/58c61bd1-3289-4510-a6c9-dfc6b0f6e053)
+
+
 #### Technologies used in the project:
 1. Vue 3
 2. DRF
