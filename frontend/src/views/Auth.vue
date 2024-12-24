@@ -11,20 +11,50 @@ export default {
 
 <template>
   <div class="container">
-    <img src="@/images/logo.webp" alt="" class="logo--image">
-    <button class="button--in" @click="loginWithYandex">Войти через Яндекс</button>
+    <div class="header">Ruscord</div>
+    <div class="place">
+      <img src="@/images/logo.webp" alt="" class="logo--image">
+      <button class="button--in" @click="loginWithYandex">Войти через Яндекс</button>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .container {
-  background-color: #2f3136;
+  background-color: #36393f;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100vh;
 }
+
+.place {
+  border-radius: 5px;
+  background-color: #2f3136;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 70vh;
+  width: 100vh;
+}
+
+.header {
+  text-align: center;
+  position: absolute;
+  top: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #202225;
+  font-size: 20px;
+  width: 100%;
+  color: white;
+  font-weight: bold;
+}
+
 
 .logo--image {
   max-width: 200px;
@@ -33,11 +63,11 @@ export default {
 }
 
 .button--in {
-  background-color: #FF0000;
+  background-color: #7289da;
   color: white;
   padding: 10px 20px;
   border: none;
-  border-radius: 10px;
+  border-radius: 5px;
   font-weight: bold;
   cursor: pointer;
   transition: background-color 0.3s ease;
@@ -46,6 +76,6 @@ export default {
 }
 
 .button--in:hover {
-  background-color: #CC0000;
+  background-color: #7289da;
 }
 </style>
